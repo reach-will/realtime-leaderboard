@@ -3,7 +3,7 @@ KAFKA_TOPIC    := match.outcomes
 KAFKA_GROUP_ID := leaderboard-ingester
 REDIS_ADDR     := localhost:6379
 
-.PHONY: up down topic top10 simulator ingester
+.PHONY: up down topic top10 proto api simulator ingester
 
 up:
 	docker compose up -d
@@ -22,6 +22,13 @@ topic:
 
 top10:
 	docker exec -it realtime-leaderboard-redis-1 redis-cli ZREVRANGE leaderboard:global 0 9 WITHSCORES
+
+proto:
+	buf generate
+
+api:
+	REDIS_ADDR=$(REDIS_ADDR) \
+	go run -tags dev ./cmd/api
 
 simulator:
 	KAFKA_URL=$(KAFKA_URL) KAFKA_TOPIC=$(KAFKA_TOPIC) \

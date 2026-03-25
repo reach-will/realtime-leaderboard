@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package leaderboard.v1;
+
+option go_package = "github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1";
+
+// Player represents a single entry on the leaderboard.
+message Player {
+  string player_id = 1;
+  double score = 2;
+  int32  rank = 3;
+}
+
+// GetTopRequest specifies how many players to return.
+message GetTopRequest {
+  int32 limit = 1;
+}
+
+// GetTopResponse contains the top N players on the leaderboard.
+message GetTopResponse {
+  repeated Player players = 1;
+}
+
+// GetPlayerRequest identifies the player to look up.
+message GetPlayerRequest {
+  string player_id = 1;
+}
+
+// GetPlayerResponse contains the player's current standing.
+message GetPlayerResponse {
+  Player player = 1;
+}
+
+// LeaderboardService exposes read-only access to the leaderboard.
+// Score updates are ingested asynchronously via Kafka.
+// This API reflects the current state of the Redis sorted set.
+service LeaderboardService {
+  // GetTop returns the top N players by score, highest first.
+  rpc GetTop(GetTopRequest) returns (GetTopResponse);
+
+  // GetPlayer returns a single player's current score and rank.
+  // Returns NOT_FOUND if the player has not yet appeared in any match.
+  rpc GetPlayer(GetPlayerRequest) returns (GetPlayerResponse);
+}
