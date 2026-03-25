@@ -1,0 +1,33 @@
+KAFKA_URL      := localhost:9092
+KAFKA_TOPIC    := match.outcomes
+KAFKA_GROUP_ID := leaderboard-ingester
+REDIS_ADDR     := localhost:6379
+
+.PHONY: up down topic top10 simulator ingester
+
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+
+topic:
+	docker exec -it realtime-leaderboard-kafka-1 \
+		/opt/kafka/bin/kafka-topics.sh \
+		--create --if-not-exists \
+		--topic $(KAFKA_TOPIC) \
+		--bootstrap-server localhost:9092 \
+		--partitions 3 \
+		--replication-factor 1
+
+top10:
+	docker exec -it realtime-leaderboard-redis-1 redis-cli ZREVRANGE leaderboard:global 0 9 WITHSCORES
+
+simulator:
+	KAFKA_URL=$(KAFKA_URL) KAFKA_TOPIC=$(KAFKA_TOPIC) \
+	go run ./cmd/simulator
+
+ingester:
+	KAFKA_URL=$(KAFKA_URL) KAFKA_TOPIC=$(KAFKA_TOPIC) \
+	KAFKA_GROUP_ID=$(KAFKA_GROUP_ID) REDIS_ADDR=$(REDIS_ADDR) \
+	go run ./cmd/ingester
