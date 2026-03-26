@@ -43,7 +43,7 @@ func main() {
 	fmt.Println("Ingester started: consuming match outcomes. Ctrl+C to stop.")
 
 	for {
-		msg, err := reader.ReadMessage(ctx)
+		msg, err := reader.FetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				fmt.Println("Ingester shutting down...")
@@ -85,6 +85,10 @@ func main() {
 		if err != nil {
 			log.Println("redis error (playerB):", err)
 			continue
+		}
+
+		if err := reader.CommitMessages(ctx, msg); err != nil {
+			log.Println("commit error:", err)
 		}
 
 		fmt.Printf("match_id=%s  playerA=%s(%.0f)  playerB=%s(%.0f)  outcome=%s\n",
