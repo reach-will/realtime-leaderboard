@@ -11,7 +11,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	pb "github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1"
+	"github.com/reach-will/realtime-leaderboard/internal/adminhttp"
 	"github.com/reach-will/realtime-leaderboard/internal/rediskeys"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
@@ -89,9 +92,26 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	srvMetrics := grpcprom.NewServerMetrics(
+		grpcprom.WithServerHandlingTimeHistogram(
+			grpcprom.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 0.3, 0.6, 1, 3, 6, 9, 20, 30, 60, 90, 120}),
+		),
+	)
+	prometheus.MustRegister(srvMetrics)
+
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(srvMetrics.UnaryServerInterceptor()),
+		grpc.ChainStreamInterceptor(srvMetrics.StreamServerInterceptor()),
+	)
 	pb.RegisterLeaderboardServiceServer(grpcServer, &leaderboardServiceServer{rdb: rdb})
 	registerReflection(grpcServer)
+	srvMetrics.InitializeMetrics(grpcServer)
+
+	metricsAddr := os.Getenv("METRICS_ADDR")
+	if metricsAddr == "" {
+		metricsAddr = ":2113"
+	}
+	go adminhttp.Start(metricsAddr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
