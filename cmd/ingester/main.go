@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/reach-will/realtime-leaderboard/internal/events"
 	"github.com/reach-will/realtime-leaderboard/internal/adminhttp"
+	"github.com/reach-will/realtime-leaderboard/internal/events"
 	"github.com/reach-will/realtime-leaderboard/internal/rediskeys"
 	"github.com/redis/go-redis/v9"
 	kafka "github.com/segmentio/kafka-go"
@@ -29,8 +29,8 @@ func main() {
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{os.Getenv("KAFKA_URL")},
-		GroupID:  os.Getenv("KAFKA_GROUP_ID"),
 		Topic:    os.Getenv("KAFKA_TOPIC"),
+		GroupID:  os.Getenv("KAFKA_GROUP_ID"),
 		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},
 		MinBytes: 1,
 		MaxBytes: 10e6,
