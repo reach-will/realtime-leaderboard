@@ -1,6 +1,6 @@
 KAFKA_URL      := localhost:9092
-KAFKA_TOPIC    := match.outcomes
-KAFKA_GROUP_ID := leaderboard-ingester
+KAFKA_TOPIC    := leaderboard.match.completed
+KAFKA_GROUP_ID := leaderboard.ingester
 REDIS_ADDR     := localhost:6379
 
 .PHONY: up down topic top10 proto api simulator ingester ps
