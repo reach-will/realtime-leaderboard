@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leaderboard-api-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: leaderboard-api
+  template:
+    metadata:
+      labels:
+        app: leaderboard-api
+    spec:
+      containers:
+        - name: leaderboard-api
+          image: ghcr.io/reach-will/realtime-leaderboard/api:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: leaderboard-api-config
+          ports:
+            - name: admin
+              containerPort: 2113
+            - name: grpc
+              containerPort: 50051
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

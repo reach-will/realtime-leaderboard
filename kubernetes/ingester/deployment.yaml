@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leaderboard-ingester-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: leaderboard-ingester
+  template:
+    metadata:
+      labels:
+        app: leaderboard-ingester
+    spec:
+      containers:
+        - name: leaderboard-ingester
+          image: ghcr.io/reach-will/realtime-leaderboard/ingester:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: leaderboard-ingester-config
+          ports:
+            - name: admin
+              containerPort: 2112
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
