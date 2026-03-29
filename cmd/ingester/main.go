@@ -31,6 +31,7 @@ func main() {
 		Brokers:  []string{os.Getenv("KAFKA_URL")},
 		GroupID:  os.Getenv("KAFKA_GROUP_ID"),
 		Topic:    os.Getenv("KAFKA_TOPIC"),
+		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},
 		MinBytes: 1,
 		MaxBytes: 10e6,
 	})
