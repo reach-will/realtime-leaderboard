@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: leaderboard-ingester-service
   namespace: default
+  labels:
+    app: leaderboard-ingester
 spec:
   selector:
     app: leaderboard-ingester

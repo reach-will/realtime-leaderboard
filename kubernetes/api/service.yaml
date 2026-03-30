@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: leaderboard-api-service
   namespace: default
+  labels:
+    app: leaderboard-api
 spec:
   selector:
     app: leaderboard-api
