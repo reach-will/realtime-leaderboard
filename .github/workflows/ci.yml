@@ -4,6 +4,16 @@ on:
   pull_request:
 
 jobs:
+  proto-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1
+      - name: Check generated files are up to date
+        run: |
+          buf generate
+          git diff --exit-code gen/
+
   test:
     runs-on: ubuntu-latest
     steps:
