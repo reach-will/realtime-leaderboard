@@ -41,4 +41,8 @@ service LeaderboardService {
   // GetPlayer returns a single player's current score and rank.
   // Returns NOT_FOUND if the player has not yet appeared in any match.
   rpc GetPlayer(GetPlayerRequest) returns (GetPlayerResponse);
+
+  // StreamTop streams the top N players whenever the leaderboard changes.
+  // The server polls Redis and pushes a new response only when scores differ.
+  rpc StreamTop(GetTopRequest) returns (stream GetTopResponse);
 }

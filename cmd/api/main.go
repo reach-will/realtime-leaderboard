@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -68,6 +69,56 @@ func (s *leaderboardServiceServer) GetPlayer(ctx context.Context, req *pb.GetPla
 			Rank:     int32(result.Rank + 1),
 		},
 	}, nil
+}
+
+func (s *leaderboardServiceServer) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_StreamTopServer) error {
+	if req.Limit <= 0 {
+		return status.Error(codes.InvalidArgument, "limit must be greater than 0")
+	}
+
+	var last []*pb.Player
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case <-ticker.C:
+			topScores, err := s.rdb.ZRevRangeWithScores(stream.Context(), rediskeys.LeaderboardGlobal, 0, int64(req.Limit-1)).Result()
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to fetch top players: %v", err)
+			}
+
+			players := make([]*pb.Player, len(topScores))
+			for i, score := range topScores {
+				players[i] = &pb.Player{
+					PlayerId: score.Member.(string),
+					Score:    score.Score,
+					Rank:     int32(i + 1),
+				}
+			}
+
+			if !playersEqual(last, players) {
+				if err := stream.Send(&pb.GetTopResponse{Players: players}); err != nil {
+					return err
+				}
+				last = players
+			}
+		}
+	}
+}
+
+func playersEqual(a, b []*pb.Player) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].PlayerId != b[i].PlayerId || a[i].Score != b[i].Score {
+			return false
+		}
+	}
+	return true
 }
 
 func main() {

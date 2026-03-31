@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	LeaderboardService_GetTop_FullMethodName    = "/leaderboard.v1.LeaderboardService/GetTop"
 	LeaderboardService_GetPlayer_FullMethodName = "/leaderboard.v1.LeaderboardService/GetPlayer"
+	LeaderboardService_StreamTop_FullMethodName = "/leaderboard.v1.LeaderboardService/StreamTop"
 )
 
 // LeaderboardServiceClient is the client API for LeaderboardService service.
@@ -36,6 +37,9 @@ type LeaderboardServiceClient interface {
 	// GetPlayer returns a single player's current score and rank.
 	// Returns NOT_FOUND if the player has not yet appeared in any match.
 	GetPlayer(ctx context.Context, in *GetPlayerRequest, opts ...grpc.CallOption) (*GetPlayerResponse, error)
+	// StreamTop streams the top N players whenever the leaderboard changes.
+	// The server polls Redis and pushes a new response only when scores differ.
+	StreamTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetTopResponse], error)
 }
 
 type leaderboardServiceClient struct {
@@ -66,6 +70,25 @@ func (c *leaderboardServiceClient) GetPlayer(ctx context.Context, in *GetPlayerR
 	return out, nil
 }
 
+func (c *leaderboardServiceClient) StreamTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetTopResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LeaderboardService_ServiceDesc.Streams[0], LeaderboardService_StreamTop_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetTopRequest, GetTopResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LeaderboardService_StreamTopClient = grpc.ServerStreamingClient[GetTopResponse]
+
 // LeaderboardServiceServer is the server API for LeaderboardService service.
 // All implementations must embed UnimplementedLeaderboardServiceServer
 // for forward compatibility.
@@ -79,6 +102,9 @@ type LeaderboardServiceServer interface {
 	// GetPlayer returns a single player's current score and rank.
 	// Returns NOT_FOUND if the player has not yet appeared in any match.
 	GetPlayer(context.Context, *GetPlayerRequest) (*GetPlayerResponse, error)
+	// StreamTop streams the top N players whenever the leaderboard changes.
+	// The server polls Redis and pushes a new response only when scores differ.
+	StreamTop(*GetTopRequest, grpc.ServerStreamingServer[GetTopResponse]) error
 	mustEmbedUnimplementedLeaderboardServiceServer()
 }
 
@@ -94,6 +120,9 @@ func (UnimplementedLeaderboardServiceServer) GetTop(context.Context, *GetTopRequ
 }
 func (UnimplementedLeaderboardServiceServer) GetPlayer(context.Context, *GetPlayerRequest) (*GetPlayerResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPlayer not implemented")
+}
+func (UnimplementedLeaderboardServiceServer) StreamTop(*GetTopRequest, grpc.ServerStreamingServer[GetTopResponse]) error {
+	return status.Error(codes.Unimplemented, "method StreamTop not implemented")
 }
 func (UnimplementedLeaderboardServiceServer) mustEmbedUnimplementedLeaderboardServiceServer() {}
 func (UnimplementedLeaderboardServiceServer) testEmbeddedByValue()                            {}
@@ -152,6 +181,17 @@ func _LeaderboardService_GetPlayer_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LeaderboardService_StreamTop_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetTopRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(LeaderboardServiceServer).StreamTop(m, &grpc.GenericServerStream[GetTopRequest, GetTopResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LeaderboardService_StreamTopServer = grpc.ServerStreamingServer[GetTopResponse]
+
 // LeaderboardService_ServiceDesc is the grpc.ServiceDesc for LeaderboardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -168,6 +208,12 @@ var LeaderboardService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _LeaderboardService_GetPlayer_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamTop",
+			Handler:       _LeaderboardService_StreamTop_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "leaderboard/v1/leaderboard.proto",
 }
