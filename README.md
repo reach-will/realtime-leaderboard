@@ -20,7 +20,7 @@ flowchart LR
     GRAF["Grafana"]
     KEDA["KEDA"]
 
-    SIM -->|"produce\nMatchOutcome (JSON)"| KAFKA
+    SIM -->|"produce\nMatchOutcome (protobuf)"| KAFKA
     KAFKA -->|consume| ING
     ING -->|ZINCRBY| REDIS
     REDIS -->|ZREVRANGE| API
@@ -292,7 +292,8 @@ cmd/
 gen/                          # Generated Go code (gitignored)
 internal/
   adminhttp/                  # Shared /metrics + /healthz HTTP server
-  events/                     # MatchOutcome event type
+  events/v1/
+    match_outcome.proto       # Kafka event schema
   rediskeys/                  # Redis key constants
 kubernetes/
   api/                        # API Deployment, Service, ConfigMap, ServiceMonitor
