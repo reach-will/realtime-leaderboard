@@ -148,11 +148,13 @@ grpcurl -plaintext -proto api/leaderboard/v1/leaderboard.proto \
 make top10
 ```
 
-The API server also exposes gRPC reflection when run with `-tags dev` (which `make api` does), so you can omit `-proto`:
+`make api` builds with `-tags dev`, which enables gRPC reflection. With reflection active you can omit `-proto`:
 
 ```bash
 grpcurl -plaintext -d '{"limit": 10}' localhost:50051 leaderboard.v1.LeaderboardService/GetTop
 ```
+
+> **Note:** gRPC reflection is disabled in production builds (the Docker images). Always pass `-proto api/leaderboard/v1/leaderboard.proto` when querying the Kubernetes deployment.
 
 ### 5. Tear down
 
