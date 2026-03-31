@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -10,9 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
 	"github.com/google/uuid"
-	"github.com/reach-will/realtime-leaderboard/internal/events"
 	kafka "github.com/segmentio/kafka-go"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -45,31 +45,32 @@ func main() {
 			idx2++
 		}
 
-		var outcome events.Outcome
+		var outcome eventspb.Outcome
 		switch rand.IntN(11) {
 		case 0:
-			outcome = events.OutcomeDraw
+			outcome = eventspb.Outcome_OUTCOME_DRAW
 		case 1, 2, 3, 4, 5:
-			outcome = events.OutcomePlayerBWins
+			outcome = eventspb.Outcome_OUTCOME_PLAYER_B_WINS
 		default:
-			outcome = events.OutcomePlayerAWins
+			outcome = eventspb.Outcome_OUTCOME_PLAYER_A_WINS
 		}
 
-		event := events.NewMatchOutcome(
-			uuid.New().String(),
-			players[idx1],
-			players[idx2],
-			outcome,
-		)
+		event := &eventspb.MatchOutcome{
+			MatchId:     uuid.New().String(),
+			PlayerA:     players[idx1],
+			PlayerB:     players[idx2],
+			Outcome:     outcome,
+			TimestampMs: time.Now().UnixMilli(),
+		}
 
-		payload, err := json.Marshal(event)
+		payload, err := proto.Marshal(event)
 		if err != nil {
 			fmt.Println("marshal error:", err)
 			continue
 		}
 
 		msg := kafka.Message{
-			Key:   []byte(event.MatchID),
+			Key:   []byte(event.MatchId),
 			Value: payload,
 		}
 
@@ -77,7 +78,7 @@ func main() {
 			fmt.Println("produce error:", err)
 		} else {
 			fmt.Printf("produced matchId=%s  playerA=%s  playerB=%s  outcome=%s\n",
-				event.MatchID, event.PlayerA, event.PlayerB, event.Outcome)
+				event.MatchId, event.PlayerA, event.PlayerB, event.Outcome)
 		}
 
 		select {

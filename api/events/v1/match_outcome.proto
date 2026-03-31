@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "github.com/reach-will/realtime-leaderboard/gen/events/v1";
+
+enum Outcome {
+  OUTCOME_UNSPECIFIED = 0;
+  OUTCOME_PLAYER_A_WINS = 1;
+  OUTCOME_PLAYER_B_WINS = 2;
+  OUTCOME_DRAW = 3;
+}
+
+message MatchOutcome {
+  string match_id = 1;
+  string player_a = 2;
+  string player_b = 3;
+  Outcome outcome = 4;
+  int64 timestamp_ms = 5;
+}

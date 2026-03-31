@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,10 +10,11 @@ import (
 	"time"
 
 	"github.com/reach-will/realtime-leaderboard/internal/adminhttp"
-	"github.com/reach-will/realtime-leaderboard/internal/events"
+	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
 	"github.com/reach-will/realtime-leaderboard/internal/rediskeys"
 	"github.com/redis/go-redis/v9"
 	kafka "github.com/segmentio/kafka-go"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -64,8 +64,8 @@ func main() {
 
 		start := time.Now()
 
-		var outcome events.MatchOutcome
-		if err := json.Unmarshal(msg.Value, &outcome); err != nil {
+		var outcome eventspb.MatchOutcome
+		if err := proto.Unmarshal(msg.Value, &outcome); err != nil {
 			messagesProcessedCounter.Inc()
 			processingErrorsCounter.Inc()
 			log.Println("unmarshal error:", err)
@@ -74,11 +74,11 @@ func main() {
 
 		var deltaA, deltaB float64
 		switch outcome.Outcome {
-		case events.OutcomePlayerAWins:
+		case eventspb.Outcome_OUTCOME_PLAYER_A_WINS:
 			deltaA, deltaB = winDelta, lossDelta
-		case events.OutcomePlayerBWins:
+		case eventspb.Outcome_OUTCOME_PLAYER_B_WINS:
 			deltaA, deltaB = lossDelta, winDelta
-		case events.OutcomeDraw:
+		case eventspb.Outcome_OUTCOME_DRAW:
 			deltaA, deltaB = drawDelta, drawDelta
 		default:
 			messagesProcessedCounter.Inc()
@@ -138,7 +138,7 @@ func main() {
 		messagesProcessedCounter.Inc()
 
 		fmt.Printf("match_id=%s  playerA=%s(%.0f)  playerB=%s(%.0f)  outcome=%s\n",
-			outcome.MatchID,
+			outcome.MatchId,
 			outcome.PlayerA, scoreA,
 			outcome.PlayerB, scoreB,
 			outcome.Outcome,
