@@ -2,8 +2,7 @@ package ingester
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
@@ -32,16 +31,16 @@ func New(reader *kafka.Reader, rdb *redis.Client) *Consumer {
 
 // Run processes messages until ctx is cancelled.
 func (c *Consumer) Run(ctx context.Context) {
-	fmt.Println("Ingester started: consuming match outcomes. Ctrl+C to stop.")
+	slog.Info("ingester started")
 
 	for {
 		msg, err := c.reader.FetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
-				fmt.Println("Ingester shutting down...")
+				slog.Info("ingester shutting down")
 				return
 			}
-			log.Println("read error:", err)
+			slog.Error("failed to read message", "error", err)
 			continue
 		}
 
@@ -51,7 +50,7 @@ func (c *Consumer) Run(ctx context.Context) {
 		if err := proto.Unmarshal(msg.Value, &outcome); err != nil {
 			messagesProcessedCounter.Inc()
 			processingErrorsCounter.Inc()
-			log.Println("unmarshal error:", err)
+			slog.Error("failed to unmarshal message", "error", err)
 			continue
 		}
 
@@ -66,7 +65,7 @@ func (c *Consumer) Run(ctx context.Context) {
 		default:
 			messagesProcessedCounter.Inc()
 			processingErrorsCounter.Inc()
-			log.Println("unknown outcome:", outcome.Outcome)
+			slog.Warn("unknown outcome", "outcome", outcome.Outcome)
 			continue
 		}
 
@@ -78,14 +77,14 @@ func (c *Consumer) Run(ctx context.Context) {
 		scoreA, err := c.rdb.ZIncrBy(ctx, rediskeys.LeaderboardGlobal, deltaA, outcome.PlayerA).Result()
 		if err != nil {
 			if ctx.Err() != nil {
-				fmt.Println("Ingester shutting down...")
+				slog.Info("ingester shutting down")
 				return
 			}
 			messagesProcessedCounter.Inc()
 			processingErrorsCounter.Inc()
 			redisUpdatesCounter.Inc()
 			redisErrorsCounter.Inc()
-			log.Println("redis error (playerA):", err)
+			slog.Error("failed to update player score", "player", outcome.PlayerA, "error", err)
 			continue
 		}
 		redisUpdatesCounter.Inc()
@@ -93,14 +92,14 @@ func (c *Consumer) Run(ctx context.Context) {
 		scoreB, err := c.rdb.ZIncrBy(ctx, rediskeys.LeaderboardGlobal, deltaB, outcome.PlayerB).Result()
 		if err != nil {
 			if ctx.Err() != nil {
-				fmt.Println("Ingester shutting down...")
+				slog.Info("ingester shutting down")
 				return
 			}
 			messagesProcessedCounter.Inc()
 			processingErrorsCounter.Inc()
 			redisUpdatesCounter.Inc()
 			redisErrorsCounter.Inc()
-			log.Println("redis error (playerB):", err)
+			slog.Error("failed to update player score", "player", outcome.PlayerB, "error", err)
 			continue
 		}
 		redisUpdatesCounter.Inc()
@@ -108,23 +107,25 @@ func (c *Consumer) Run(ctx context.Context) {
 
 		if err := c.reader.CommitMessages(ctx, msg); err != nil {
 			if ctx.Err() != nil {
-				fmt.Println("Ingester shutting down...")
+				slog.Info("ingester shutting down")
 				return
 			}
 			messagesProcessedCounter.Inc()
 			processingErrorsCounter.Inc()
-			log.Println("commit error:", err)
+			slog.Error("failed to commit message", "error", err)
 			continue
 		}
 
 		processingDuration.Observe(time.Since(start).Seconds())
 		messagesProcessedCounter.Inc()
 
-		fmt.Printf("match_id=%s  playerA=%s(%.0f)  playerB=%s(%.0f)  outcome=%s\n",
-			outcome.MatchId,
-			outcome.PlayerA, scoreA,
-			outcome.PlayerB, scoreB,
-			outcome.Outcome,
+		slog.Info("match processed",
+			"match_id", outcome.MatchId,
+			"player_a", outcome.PlayerA,
+			"score_a", scoreA,
+			"player_b", outcome.PlayerB,
+			"score_b", scoreB,
+			"outcome", outcome.Outcome,
 		)
 	}
 }

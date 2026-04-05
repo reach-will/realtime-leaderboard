@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
 	"os"
 	"os/signal"
@@ -36,7 +37,7 @@ func main() {
 	}
 	defer writer.Close()
 
-	fmt.Println("Simulator started: producing match outcomes every second. Ctrl+C to stop.")
+	slog.Info("simulator started")
 
 	for {
 		idx1 := rand.IntN(playerCount)
@@ -65,7 +66,7 @@ func main() {
 
 		payload, err := proto.Marshal(event)
 		if err != nil {
-			fmt.Println("marshal error:", err)
+			slog.Error("failed to marshal event", "error", err)
 			continue
 		}
 
@@ -75,15 +76,19 @@ func main() {
 		}
 
 		if err := writer.WriteMessages(ctx, msg); err != nil {
-			fmt.Println("produce error:", err)
+			slog.Error("failed to produce message", "error", err)
 		} else {
-			fmt.Printf("produced matchId=%s  playerA=%s  playerB=%s  outcome=%s\n",
-				event.MatchId, event.PlayerA, event.PlayerB, event.Outcome)
+			slog.Info("match produced",
+				"match_id", event.MatchId,
+				"player_a", event.PlayerA,
+				"player_b", event.PlayerB,
+				"outcome", event.Outcome,
+			)
 		}
 
 		select {
 		case <-ctx.Done():
-			fmt.Println("Simulator shutting down...")
+			slog.Info("simulator shutting down")
 			return
 		case <-time.After(time.Second):
 		}

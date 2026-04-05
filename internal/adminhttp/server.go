@@ -1,8 +1,9 @@
 package adminhttp
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -15,6 +16,7 @@ func Start(addr string) {
 		w.WriteHeader(http.StatusOK)
 	})
 	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Fatal("metrics server:", err)
+		slog.Error("metrics server failed", "error", err)
+		os.Exit(1)
 	}
 }

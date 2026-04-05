@@ -3,8 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -36,7 +35,8 @@ func main() {
 
 	lis, err := net.Listen("tcp", *port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		slog.Error("failed to listen", "error", err)
+		os.Exit(1)
 	}
 
 	srvMetrics := grpcprom.NewServerMetrics(
@@ -64,13 +64,14 @@ func main() {
 	defer stop()
 
 	go func() {
-		fmt.Printf("API server listening on %s\n", *port)
+		slog.Info("API server listening", "port", *port)
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			slog.Error("failed to serve", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-ctx.Done()
-	fmt.Println("API server shutting down...")
+	slog.Info("API server shutting down")
 	grpcServer.GracefulStop()
 }
