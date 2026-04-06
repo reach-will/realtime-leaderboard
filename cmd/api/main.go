@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log/slog"
 	"net"
 	"os"
@@ -19,21 +18,16 @@ import (
 )
 
 func main() {
-	port := flag.String("port", os.Getenv("PORT"), "Server port (env: PORT, default :50051)")
-	redisAddr := flag.String("redis-addr", os.Getenv("REDIS_ADDR"), "Redis address (env: REDIS_ADDR, default localhost:6379)")
-	flag.Parse()
-
-	if *port == "" {
-		*port = ":50051"
-	}
-	if *redisAddr == "" {
-		*redisAddr = "localhost:6379"
+	cfg, err := loadConfig()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
 	}
 
-	rdb := redis.NewClient(&redis.Options{Addr: *redisAddr})
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
 	defer rdb.Close()
 
-	lis, err := net.Listen("tcp", *port)
+	lis, err := net.Listen("tcp", cfg.Port)
 	if err != nil {
 		slog.Error("failed to listen", "error", err)
 		os.Exit(1)
@@ -54,17 +48,13 @@ func main() {
 	registerReflection(grpcServer)
 	srvMetrics.InitializeMetrics(grpcServer)
 
-	metricsAddr := os.Getenv("METRICS_ADDR")
-	if metricsAddr == "" {
-		metricsAddr = ":2113"
-	}
-	go adminhttp.Start(metricsAddr)
+	go adminhttp.Start(cfg.MetricsAddr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
-		slog.Info("API server listening", "port", *port)
+		slog.Info("API server listening", "port", cfg.Port)
 		if err := grpcServer.Serve(lis); err != nil {
 			slog.Error("failed to serve", "error", err)
 			os.Exit(1)

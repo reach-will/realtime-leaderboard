@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,13 +15,19 @@ import (
 )
 
 func main() {
+	cfg, err := loadConfig()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{os.Getenv("KAFKA_URL")},
-		Topic:    os.Getenv("KAFKA_TOPIC"),
-		GroupID:  os.Getenv("KAFKA_GROUP_ID"),
+		Brokers:  []string{cfg.KafkaURL},
+		Topic:    cfg.KafkaTopic,
+		GroupID:  cfg.KafkaGroupID,
 		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},
 		MinBytes: 1,
 		MaxBytes: 10e6,
@@ -28,16 +35,12 @@ func main() {
 	defer reader.Close()
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"),
+		Addr:     cfg.RedisAddr,
 		Protocol: 2,
 	})
 	defer rdb.Close()
 
-	metricsAddr := os.Getenv("METRICS_ADDR")
-	if metricsAddr == "" {
-		metricsAddr = ":2112"
-	}
-	go adminhttp.Start(metricsAddr)
+	go adminhttp.Start(cfg.MetricsAddr)
 
 	ingester.New(reader, rdb).Run(ctx)
 }
