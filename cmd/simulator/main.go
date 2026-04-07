@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"log/slog"
 	"math/rand/v2"
 	"os"
@@ -10,13 +10,19 @@ import (
 	"syscall"
 	"time"
 
-	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
 	"github.com/google/uuid"
+	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
 	kafka "github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
 )
 
 func main() {
+	cfg, err := loadConfig()
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -26,12 +32,12 @@ func main() {
 	var playerNamespace = uuid.MustParse("a0000000-0000-0000-0000-000000000000")
 	players := make([]string, playerCount)
 	for i := range players {
-		players[i] = uuid.NewSHA1(playerNamespace, []byte(fmt.Sprintf("%d", i))).String()
+		players[i] = uuid.NewSHA1(playerNamespace, []byte(strconv.Itoa(i))).String()
 	}
 
 	writer := &kafka.Writer{
-		Addr:                   kafka.TCP(os.Getenv("KAFKA_ADDR")),
-		Topic:                  os.Getenv("KAFKA_TOPIC"),
+		Addr:                   kafka.TCP(cfg.KafkaAddr),
+		Topic:                  cfg.KafkaTopic,
 		Balancer:               &kafka.Hash{},
 		AllowAutoTopicCreation: true,
 	}
@@ -70,12 +76,11 @@ func main() {
 			continue
 		}
 
-		msg := kafka.Message{
+		err = writer.WriteMessages(ctx, kafka.Message{
 			Key:   []byte(event.MatchId),
 			Value: payload,
-		}
-
-		if err := writer.WriteMessages(ctx, msg); err != nil {
+		})
+		if err != nil {
 			slog.Error("failed to produce message", "error", err)
 		} else {
 			slog.Info("match produced",
