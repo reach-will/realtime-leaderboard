@@ -4,6 +4,6 @@ metadata:
   name: leaderboard-api-config
   namespace: default
 data:
-  PORT: ":50051"
+  PORT: "50051"
   REDIS_ADDR: "redis:6379"
   METRICS_ADDR: ":2113"

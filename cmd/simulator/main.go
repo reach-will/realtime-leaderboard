@@ -30,7 +30,7 @@ func main() {
 	}
 
 	writer := &kafka.Writer{
-		Addr:                   kafka.TCP(os.Getenv("KAFKA_URL")),
+		Addr:                   kafka.TCP(os.Getenv("KAFKA_ADDR")),
 		Topic:                  os.Getenv("KAFKA_TOPIC"),
 		Balancer:               &kafka.Hash{},
 		AllowAutoTopicCreation: true,

@@ -1,4 +1,4 @@
-KAFKA_URL      := localhost:9092
+KAFKA_ADDR     := localhost:9092
 KAFKA_TOPIC    := leaderboard.match.completed
 KAFKA_GROUP_ID := leaderboard.ingester
 REDIS_ADDR     := localhost:6379
@@ -38,11 +38,11 @@ api:
 	@echo "Admin: http://localhost:2113  (/metrics, /healthz)"
 
 simulator:
-	KAFKA_URL=$(KAFKA_URL) KAFKA_TOPIC=$(KAFKA_TOPIC) \
+	KAFKA_URL=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
 	go run ./cmd/simulator
 
 ingester:
-	KAFKA_URL=$(KAFKA_URL) KAFKA_TOPIC=$(KAFKA_TOPIC) \
+	KAFKA_URL=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
 	KAFKA_GROUP_ID=$(KAFKA_GROUP_ID) REDIS_ADDR=$(REDIS_ADDR) \
 	go run ./cmd/ingester
 	@echo "Admin: http://localhost:2112  (/metrics, /healthz)"

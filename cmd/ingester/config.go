@@ -9,7 +9,7 @@ import (
 )
 
 type config struct {
-	KafkaURL     string
+	KafkaAddr    string
 	KafkaTopic   string
 	KafkaGroupID string
 	RedisAddr    string
@@ -18,7 +18,7 @@ type config struct {
 
 func loadConfig() (config, error) {
 	c := config{
-		KafkaURL:     os.Getenv("KAFKA_URL"),
+		KafkaAddr:    os.Getenv("KAFKA_ADDR"),
 		KafkaTopic:   os.Getenv("KAFKA_TOPIC"),
 		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
 		RedisAddr:    env.OrDefault("REDIS_ADDR", "localhost:6379"),
@@ -26,8 +26,8 @@ func loadConfig() (config, error) {
 	}
 
 	var missing []string
-	if c.KafkaURL == "" {
-		missing = append(missing, "KAFKA_URL")
+	if c.KafkaAddr == "" {
+		missing = append(missing, "KAFKA_ADDR")
 	}
 	if c.KafkaTopic == "" {
 		missing = append(missing, "KAFKA_TOPIC")

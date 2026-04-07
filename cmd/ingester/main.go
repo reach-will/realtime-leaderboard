@@ -25,7 +25,7 @@ func main() {
 	defer stop()
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{cfg.KafkaURL},
+		Brokers:  []string{cfg.KafkaAddr},
 		Topic:    cfg.KafkaTopic,
 		GroupID:  cfg.KafkaGroupID,
 		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},

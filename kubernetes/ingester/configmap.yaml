@@ -4,7 +4,7 @@ metadata:
   name: leaderboard-ingester-config
   namespace: default
 data:
-  KAFKA_URL: "kafka:9092"
+  KAFKA_ADDR: "kafka:9092"
   KAFKA_TOPIC: "leaderboard.match.completed"
   KAFKA_GROUP_ID: "leaderboard.ingester"
   REDIS_ADDR: "redis:6379"
