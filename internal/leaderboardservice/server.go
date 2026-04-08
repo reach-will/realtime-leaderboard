@@ -14,28 +14,19 @@ import (
 
 // Server is the leaderboard gRPC service. Call Close when done.
 type Server struct {
-	pb.LeaderboardServiceServer
-	rdb *redis.Client
-}
-
-type server struct {
 	pb.UnimplementedLeaderboardServiceServer
 	rdb *redis.Client
 }
 
 // New returns a leaderboard gRPC service implementation backed by Redis.
 func New(cfg Config) *Server {
-	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
-	return &Server{
-		LeaderboardServiceServer: &server{rdb: rdb},
-		rdb:                      rdb,
-	}
+	return &Server{rdb: redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})}
 }
 
 // Close releases the underlying Redis connection.
 func (s *Server) Close() { s.rdb.Close() }
 
-func (s *server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
+func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
 	if req.Limit <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "limit must be greater than 0")
 	}
@@ -56,7 +47,7 @@ func (s *server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 	return &pb.GetTopResponse{Players: players}, nil
 }
 
-func (s *server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.GetPlayerResponse, error) {
+func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.GetPlayerResponse, error) {
 	if req.PlayerId == "" {
 		return nil, status.Error(codes.InvalidArgument, "player_id is required")
 	}
@@ -78,7 +69,7 @@ func (s *server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 	}, nil
 }
 
-func (s *server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_StreamTopServer) error {
+func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_StreamTopServer) error {
 	if req.Limit <= 0 {
 		return status.Error(codes.InvalidArgument, "limit must be greater than 0")
 	}
