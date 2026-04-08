@@ -19,14 +19,33 @@ const (
 )
 
 // Consumer reads match outcomes from Kafka and updates scores in Redis.
+// Call Close when done.
 type Consumer struct {
 	reader *kafka.Reader
 	rdb    *redis.Client
 }
 
-// New creates a Consumer with the given Kafka reader and Redis client.
-func New(reader *kafka.Reader, rdb *redis.Client) *Consumer {
+// New creates a Consumer from cfg, establishing Kafka and Redis connections.
+func New(cfg Config) *Consumer {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  []string{cfg.KafkaAddr},
+		Topic:    cfg.KafkaTopic,
+		GroupID:  cfg.KafkaGroupID,
+		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},
+		MinBytes: 1,
+		MaxBytes: 10e6,
+	})
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     cfg.RedisAddr,
+		Protocol: 2,
+	})
 	return &Consumer{reader: reader, rdb: rdb}
+}
+
+// Close releases the Kafka reader and Redis connection.
+func (c *Consumer) Close() {
+	c.reader.Close()
+	c.rdb.Close()
 }
 
 // Run processes messages until ctx is cancelled.

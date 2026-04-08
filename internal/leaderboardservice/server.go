@@ -12,15 +12,28 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Server is the leaderboard gRPC service. Call Close when done.
+type Server struct {
+	pb.LeaderboardServiceServer
+	rdb *redis.Client
+}
+
 type server struct {
 	pb.UnimplementedLeaderboardServiceServer
 	rdb *redis.Client
 }
 
-// New returns a leaderboard gRPC service implementation.
-func New(rdb *redis.Client) pb.LeaderboardServiceServer {
-	return &server{rdb: rdb}
+// New returns a leaderboard gRPC service implementation backed by Redis.
+func New(cfg Config) *Server {
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
+	return &Server{
+		LeaderboardServiceServer: &server{rdb: rdb},
+		rdb:                      rdb,
+	}
 }
+
+// Close releases the underlying Redis connection.
+func (s *Server) Close() { s.rdb.Close() }
 
 func (s *server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
 	if req.Limit <= 0 {
