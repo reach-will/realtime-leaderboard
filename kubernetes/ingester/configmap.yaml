@@ -8,4 +8,4 @@ data:
   KAFKA_TOPIC: "leaderboard.match.completed"
   KAFKA_GROUP_ID: "leaderboard.ingester"
   REDIS_ADDR: "redis:6379"
-  METRICS_ADDR: ":2112"
+  ADMIN_ADDR: ":2112"

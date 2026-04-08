@@ -6,4 +6,4 @@ metadata:
 data:
   PORT: "50051"
   REDIS_ADDR: "redis:6379"
-  METRICS_ADDR: ":2113"
+  ADMIN_ADDR: ":2113"

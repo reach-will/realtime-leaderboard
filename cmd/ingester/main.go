@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/reach-will/realtime-leaderboard/internal/adminhttp"
+	"github.com/reach-will/realtime-leaderboard/internal/admin"
 	"github.com/reach-will/realtime-leaderboard/internal/ingester"
 	"github.com/redis/go-redis/v9"
 	kafka "github.com/segmentio/kafka-go"
@@ -40,7 +40,7 @@ func main() {
 	})
 	defer rdb.Close()
 
-	go adminhttp.Start(cfg.MetricsAddr)
+	go admin.Serve(cfg.AdminAddr)
 
 	ingester.New(reader, rdb).Run(ctx)
 }

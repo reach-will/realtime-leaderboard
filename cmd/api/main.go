@@ -11,7 +11,7 @@ import (
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	pb "github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1"
-	"github.com/reach-will/realtime-leaderboard/internal/adminhttp"
+	"github.com/reach-will/realtime-leaderboard/internal/admin"
 	"github.com/reach-will/realtime-leaderboard/internal/leaderboardservice"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
@@ -48,7 +48,7 @@ func main() {
 	registerReflection(grpcServer)
 	srvMetrics.InitializeMetrics(grpcServer)
 
-	go adminhttp.Start(cfg.MetricsAddr)
+	go admin.Serve(cfg.AdminAddr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -13,7 +13,7 @@ type config struct {
 	KafkaTopic   string
 	KafkaGroupID string
 	RedisAddr    string
-	MetricsAddr  string
+	AdminAddr    string
 }
 
 func loadConfig() (config, error) {
@@ -22,7 +22,7 @@ func loadConfig() (config, error) {
 		KafkaTopic:   os.Getenv("KAFKA_TOPIC"),
 		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
 		RedisAddr:    env.OrDefault("REDIS_ADDR", "localhost:6379"),
-		MetricsAddr:  env.OrDefault("METRICS_ADDR", ":2112"),
+		AdminAddr:    env.OrDefault("ADMIN_ADDR", ":2112"),
 	}
 
 	var missing []string
