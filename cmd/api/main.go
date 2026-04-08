@@ -27,7 +27,7 @@ func main() {
 	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})
 	defer rdb.Close()
 
-	lis, err := net.Listen("tcp", cfg.Port)
+	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
 		slog.Error("failed to listen", "error", err)
 		os.Exit(1)
@@ -54,7 +54,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		slog.Info("API server listening", "port", cfg.Port)
+		slog.Info("API server listening", "addr", cfg.GRPCAddr)
 		if err := grpcServer.Serve(lis); err != nil {
 			slog.Error("failed to serve", "error", err)
 			os.Exit(1)
