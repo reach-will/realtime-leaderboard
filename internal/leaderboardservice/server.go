@@ -20,7 +20,13 @@ type Server struct {
 
 // New returns a leaderboard gRPC service implementation backed by Redis.
 func New(cfg Config) *Server {
-	return &Server{rdb: redis.NewClient(&redis.Options{Addr: cfg.RedisAddr})}
+	rdb := redis.NewClient(&redis.Options{
+		Addr:         cfg.RedisAddr,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
+	})
+	return &Server{rdb: rdb}
 }
 
 // Close releases the underlying Redis connection.

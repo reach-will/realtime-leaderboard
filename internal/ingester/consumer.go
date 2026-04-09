@@ -36,8 +36,11 @@ func New(cfg Config) *Consumer {
 		MaxBytes: 10e6,
 	})
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Protocol: 2,
+		Addr:         cfg.RedisAddr,
+		Protocol:     2,
+		DialTimeout:  5 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	})
 	return &Consumer{reader: reader, rdb: rdb}
 }
