@@ -13,7 +13,7 @@ type Config struct {
 	KafkaAddr    string // e.g. localhost:9092
 	KafkaTopic   string
 	KafkaGroupID string
-	RedisAddr    string // e.g. localhost:6379
+	RedisAddr    string // e.g. redis:6379
 	AdminAddr    string // e.g. :2112
 }
 
@@ -23,7 +23,7 @@ func Load() (Config, error) {
 		KafkaAddr:    os.Getenv("KAFKA_ADDR"),
 		KafkaTopic:   os.Getenv("KAFKA_TOPIC"),
 		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
-		RedisAddr:    config.Get("REDIS_ADDR", "localhost:6379"),
+		RedisAddr:    os.Getenv("REDIS_ADDR"),
 		AdminAddr:    config.Get("ADMIN_ADDR", ":2112"),
 	}
 	var missing []string
@@ -36,8 +36,11 @@ func Load() (Config, error) {
 	if c.KafkaGroupID == "" {
 		missing = append(missing, "KAFKA_GROUP_ID")
 	}
+	if c.RedisAddr == "" {
+		missing = append(missing, "REDIS_ADDR")
+	}
 	if len(missing) > 0 {
-		return c, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
+		return Config{}, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
 	}
 	return c, nil
 }
