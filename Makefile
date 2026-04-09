@@ -2,6 +2,9 @@ KAFKA_ADDR     := localhost:9092
 KAFKA_TOPIC    := leaderboard.match.completed
 KAFKA_GROUP_ID := leaderboard.ingester
 REDIS_ADDR     := localhost:6379
+GRPC_ADDR      := :50051
+API_ADMIN_ADDR := :2113
+ING_ADMIN_ADDR := :2112
 
 .PHONY: up down topic top10 proto api simulator ingester ps
 
@@ -32,10 +35,10 @@ proto:
 	buf generate
 
 api:
-	REDIS_ADDR=$(REDIS_ADDR) \
+	GRPC_ADDR=$(GRPC_ADDR) REDIS_ADDR=$(REDIS_ADDR) ADMIN_ADDR=$(API_ADMIN_ADDR) \
 	go run -tags dev ./cmd/api
-	@echo "gRPC:  localhost:50051"
-	@echo "Admin: http://localhost:2113  (/metrics, /healthz)"
+	@echo "gRPC:  localhost$(GRPC_ADDR)"
+	@echo "Admin: http://localhost$(API_ADMIN_ADDR)  (/metrics, /healthz)"
 
 simulator:
 	KAFKA_ADDR=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
@@ -43,6 +46,6 @@ simulator:
 
 ingester:
 	KAFKA_ADDR=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
-	KAFKA_GROUP_ID=$(KAFKA_GROUP_ID) REDIS_ADDR=$(REDIS_ADDR) \
+	KAFKA_GROUP_ID=$(KAFKA_GROUP_ID) REDIS_ADDR=$(REDIS_ADDR) ADMIN_ADDR=$(ING_ADMIN_ADDR) \
 	go run ./cmd/ingester
-	@echo "Admin: http://localhost:2112  (/metrics, /healthz)"
+	@echo "Admin: http://localhost$(ING_ADMIN_ADDR)  (/metrics, /healthz)"
