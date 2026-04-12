@@ -125,11 +125,10 @@ func (c *Consumer) Run(ctx context.Context) {
 		}
 
 		redisStart := time.Now()
-
-		// ZIncrBy is atomic per call; two separate calls are acceptable here
-		// because the worst case (crash between them) leaves one player updated.
-		// Exact atomicity across both players requires a Lua script, added in a later phase.
-		scoreA, err := c.rdb.ZIncrBy(ctx, rediskeys.LeaderboardGlobal, deltaA, outcome.PlayerA).Result()
+		vals, err := updateScoresScript.Run(ctx, c.rdb,
+			[]string{rediskeys.LeaderboardGlobal},
+			deltaA, outcome.PlayerA, deltaB, outcome.PlayerB,
+		).Slice()
 		if err != nil {
 			if ctx.Err() != nil {
 				slog.Info("ingester shutting down")
@@ -142,30 +141,20 @@ func (c *Consumer) Run(ctx context.Context) {
 			processingErrorsCounter.Inc()
 			redisUpdatesCounter.Inc()
 			redisErrorsCounter.Inc()
-			slog.Error("failed to update player score", "player", outcome.PlayerA, "error", err)
-			c.sendToDLT(ctx, msg, "redis_error: "+err.Error())
-			continue
-		}
-		redisUpdatesCounter.Inc()
-
-		scoreB, err := c.rdb.ZIncrBy(ctx, rediskeys.LeaderboardGlobal, deltaB, outcome.PlayerB).Result()
-		if err != nil {
-			if ctx.Err() != nil {
-				slog.Info("ingester shutting down")
-				return
-			}
-			// Transient: same as above.
-			// TODO: route to a retry topic instead once infrastructure supports it.
-			messagesProcessedCounter.Inc()
-			processingErrorsCounter.Inc()
-			redisUpdatesCounter.Inc()
-			redisErrorsCounter.Inc()
-			slog.Error("failed to update player score", "player", outcome.PlayerB, "error", err)
+			slog.Error("failed to update scores", "match_id", outcome.MatchId, "error", err)
 			c.sendToDLT(ctx, msg, "redis_error: "+err.Error())
 			continue
 		}
 		redisUpdatesCounter.Inc()
 		redisUpdateDuration.Observe(time.Since(redisStart).Seconds())
+
+		var scoreA, scoreB float64
+		if s, ok := vals[0].(string); ok {
+			scoreA, _ = strconv.ParseFloat(s, 64)
+		}
+		if s, ok := vals[1].(string); ok {
+			scoreB, _ = strconv.ParseFloat(s, 64)
+		}
 
 		if err := c.reader.CommitMessages(ctx, msg); err != nil {
 			if ctx.Err() != nil {
