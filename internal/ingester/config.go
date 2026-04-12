@@ -13,6 +13,7 @@ type Config struct {
 	KafkaAddr    string // e.g. localhost:9092
 	KafkaTopic   string
 	KafkaGroupID string
+	KafkaDLTopic string // dead letter topic; defaults to KafkaTopic + ".dlt"
 	RedisAddr    string // e.g. redis:6379
 	AdminAddr    string // e.g. :2112
 }
@@ -25,6 +26,7 @@ func Load() (Config, error) {
 		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
 		RedisAddr:    os.Getenv("REDIS_ADDR"),
 		AdminAddr:    config.Get("ADMIN_ADDR", ":2112"),
+		KafkaDLTopic: config.Get("KAFKA_DL_TOPIC", ""),
 	}
 	var missing []string
 	if c.KafkaAddr == "" {
@@ -41,6 +43,9 @@ func Load() (Config, error) {
 	}
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
+	}
+	if c.KafkaDLTopic == "" {
+		c.KafkaDLTopic = c.KafkaTopic + ".dlt"
 	}
 	return c, nil
 }
