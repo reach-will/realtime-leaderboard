@@ -24,11 +24,18 @@ const (
 	// preventing stale scores under low traffic.
 	batchSize    = 100
 	batchTimeout = 20 * time.Millisecond
+
+	// processedMatchesTTL is the lifetime of the processed-match-IDs set in Redis.
+	// It only needs to outlive the redelivery window: the gap between a partial pipeline
+	// apply and the next successful commit after a consumer restart, which is seconds in
+	// practice. 24 hours is deliberately conservative.
+	processedMatchesTTL = 24 * 60 * 60 // seconds
 )
 
 // matchUpdate holds the parsed outcome of a single match ready to be applied to Redis.
 type matchUpdate struct {
 	msg     kafka.Message
+	matchID string
 	playerA string
 	deltaA  float64
 	playerB string
@@ -183,6 +190,7 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 
 		updates = append(updates, matchUpdate{
 			msg:     msg,
+			matchID: outcome.MatchId,
 			playerA: outcome.PlayerA,
 			deltaA:  deltaA,
 			playerB: outcome.PlayerB,
@@ -216,8 +224,9 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	redisStart := time.Now()
 	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, upd := range updates {
-			updateScoresScript.Run(ctx, pipe, []string{rediskeys.LeaderboardGlobal},
-				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB)
+			updateScoresScript.Run(ctx, pipe,
+				[]string{rediskeys.LeaderboardGlobal, rediskeys.ProcessedMatches},
+				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB, upd.matchID, processedMatchesTTL)
 		}
 		return nil
 	})

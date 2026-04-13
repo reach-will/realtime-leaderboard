@@ -2,20 +2,30 @@ package ingester
 
 import "github.com/redis/go-redis/v9"
 
-// updateScoresScript atomically increments both players' scores in a single Redis operation.
+// updateScoresScript atomically checks for duplicate processing, records the match ID,
+// and increments both players' scores in a single Redis operation.
 //
-// Redis executes Lua scripts atomically — no other command can interleave between the two
-// ZINCRBY calls, eliminating the partial-update risk that exists with two separate calls
-// (i.e. player A's score being updated while player B's is not, in the event of a crash).
+// Redis executes Lua scripts atomically — no other command can interleave, which means
+// the duplicate check and the score updates form a single indivisible operation. This
+// guarantees that a match replayed after a consumer crash (Kafka at-least-once delivery)
+// is a safe no-op rather than a double-count.
 //
 // KEYS[1]  — sorted set key (e.g. leaderboard:global)
+// KEYS[2]  — processed match IDs set key (e.g. ingester:processed_matches)
 // ARGV[1]  — player A delta (float, as string)
 // ARGV[2]  — player A ID
 // ARGV[3]  — player B delta (float, as string)
 // ARGV[4]  — player B ID
+// ARGV[5]  — match ID
+// ARGV[6]  — TTL for the processed-matches set in seconds
 //
-// Returns a two-element array: [newScoreA, newScoreB] as bulk strings.
+// Returns a two-element array [newScoreA, newScoreB], or nil if the match was already processed.
 var updateScoresScript = redis.NewScript(`
+if redis.call('SISMEMBER', KEYS[2], ARGV[5]) == 1 then
+  return nil
+end
+redis.call('SADD', KEYS[2], ARGV[5])
+redis.call('EXPIRE', KEYS[2], ARGV[6], 'NX')
 local scoreA = redis.call('ZINCRBY', KEYS[1], ARGV[1], ARGV[2])
 local scoreB = redis.call('ZINCRBY', KEYS[1], ARGV[3], ARGV[4])
 return {scoreA, scoreB}
