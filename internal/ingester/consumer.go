@@ -17,7 +17,23 @@ const (
 	winDelta  = 3.0
 	lossDelta = -1.0
 	drawDelta = 1.0
+
+	// Batching tuning — adjust based on profiling.
+	// batchSize caps the number of messages accumulated before flushing to Redis.
+	// batchTimeout flushes a partial batch if no new messages arrive within the window,
+	// preventing stale scores under low traffic.
+	batchSize    = 100
+	batchTimeout = 20 * time.Millisecond
 )
+
+// matchUpdate holds the parsed outcome of a single match ready to be applied to Redis.
+type matchUpdate struct {
+	msg     kafka.Message
+	playerA string
+	deltaA  float64
+	playerB string
+	deltaB  float64
+}
 
 // Consumer reads match outcomes from Kafka and updates scores in Redis.
 // Call Close when done.
@@ -59,7 +75,7 @@ func (c *Consumer) Close() {
 	c.dlt.Close()
 }
 
-// Run processes messages until ctx is cancelled.
+// Run collects and flushes batches until ctx is cancelled.
 //
 // Error handling strategy:
 //
@@ -83,25 +99,48 @@ func (c *Consumer) Close() {
 // TODO: introduce a retry topic for transient Redis errors once infrastructure supports it.
 func (c *Consumer) Run(ctx context.Context) {
 	slog.Info("ingester started")
-
 	for {
-		msg, err := c.reader.FetchMessage(ctx)
+		updates, start := c.collectBatch(ctx)
+		if ctx.Err() != nil {
+			slog.Info("ingester shutting down")
+			return
+		}
+		if len(updates) == 0 {
+			continue
+		}
+		c.flushBatch(ctx, updates, start)
+	}
+}
+
+// collectBatch fetches up to batchSize messages within batchTimeout, parsing each
+// into a matchUpdate. Non-transient errors (bad payload, unknown outcome) are
+// forwarded to the DLT inline and excluded from the returned batch.
+func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate, start time.Time) {
+	start = time.Now()
+	deadline := start.Add(batchTimeout)
+
+	for len(updates) < batchSize {
+		fetchCtx, cancel := context.WithDeadline(ctx, deadline)
+		msg, err := c.reader.FetchMessage(fetchCtx)
+		cancel()
+
 		if err != nil {
 			if ctx.Err() != nil {
-				slog.Info("ingester shutting down")
 				return
+			}
+			if fetchCtx.Err() != nil {
+				return // batch window expired, flush what we have
 			}
 			slog.Error("failed to read message", "error", err)
 			continue
 		}
 
-		start := time.Now()
+		messagesReceivedTotal.Inc()
 
 		var outcome eventspb.MatchOutcome
 		if err := proto.Unmarshal(msg.Value, &outcome); err != nil {
 			// Non-transient: malformed payload will never deserialize successfully (poison pill).
-			messagesProcessedCounter.Inc()
-			processingErrorsCounter.Inc()
+			messagesErrorsTotal.Inc()
 			slog.Error("failed to unmarshal message", "error", err)
 			c.sendToDLT(ctx, msg, "unmarshal_error: "+err.Error())
 			continue
@@ -117,72 +156,80 @@ func (c *Consumer) Run(ctx context.Context) {
 			deltaA, deltaB = drawDelta, drawDelta
 		default:
 			// Non-transient: unknown outcome type is a producer-side bug, not a transient failure.
-			messagesProcessedCounter.Inc()
-			processingErrorsCounter.Inc()
+			messagesErrorsTotal.Inc()
 			slog.Warn("unknown outcome", "outcome", outcome.Outcome)
 			c.sendToDLT(ctx, msg, "unknown_outcome: "+outcome.Outcome.String())
 			continue
 		}
 
-		redisStart := time.Now()
-		vals, err := updateScoresScript.Run(ctx, c.rdb,
-			[]string{rediskeys.LeaderboardGlobal},
-			deltaA, outcome.PlayerA, deltaB, outcome.PlayerB,
-		).Slice()
-		if err != nil {
-			if ctx.Err() != nil {
-				slog.Info("ingester shutting down")
-				return
-			}
-			// Transient: Redis errors may be temporary, but we route directly to DLT rather
-			// than retrying in-place to avoid blocking the partition.
-			// TODO: route to a retry topic instead once infrastructure supports it.
-			messagesProcessedCounter.Inc()
-			processingErrorsCounter.Inc()
-			redisUpdatesCounter.Inc()
-			redisErrorsCounter.Inc()
-			slog.Error("failed to update scores", "match_id", outcome.MatchId, "error", err)
-			c.sendToDLT(ctx, msg, "redis_error: "+err.Error())
-			continue
-		}
-		redisUpdatesCounter.Inc()
-		redisUpdateDuration.Observe(time.Since(redisStart).Seconds())
-
-		var scoreA, scoreB float64
-		if s, ok := vals[0].(string); ok {
-			scoreA, _ = strconv.ParseFloat(s, 64)
-		}
-		if s, ok := vals[1].(string); ok {
-			scoreB, _ = strconv.ParseFloat(s, 64)
-		}
-
-		if err := c.reader.CommitMessages(ctx, msg); err != nil {
-			if ctx.Err() != nil {
-				slog.Info("ingester shutting down")
-				return
-			}
-			// Commit failure after successful Redis writes means scores are updated but
-			// the offset is not saved. The message will be reprocessed on restart, causing
-			// a duplicate ZIncrBy — acceptable under at-least-once delivery semantics.
-			// Idempotent score updates (e.g. via match_id deduplication) would prevent this.
-			messagesProcessedCounter.Inc()
-			processingErrorsCounter.Inc()
-			slog.Error("failed to commit message", "error", err)
-			continue
-		}
-
-		processingDuration.Observe(time.Since(start).Seconds())
-		messagesProcessedCounter.Inc()
-
-		slog.Info("match processed",
-			"match_id", outcome.MatchId,
-			"player_a", outcome.PlayerA,
-			"score_a", scoreA,
-			"player_b", outcome.PlayerB,
-			"score_b", scoreB,
-			"outcome", outcome.Outcome,
-		)
+		updates = append(updates, matchUpdate{
+			msg:     msg,
+			playerA: outcome.PlayerA,
+			deltaA:  deltaA,
+			playerB: outcome.PlayerB,
+			deltaB:  deltaB,
+		})
 	}
+	return
+}
+
+// flushBatch pipelines one Lua script call per match in a single Redis round-trip,
+// then commits the batch offset.
+//
+// Each script call atomically updates both players' scores for a single match
+// (see scripts.go). Pipelining preserves per-match atomicity while still batching
+// all network I/O into one round-trip.
+//
+// If the pipeline fails, all messages in the batch are routed to the DLT.
+// TODO: route to a retry topic instead once infrastructure supports it.
+func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate, start time.Time) {
+	batchesTotal.Inc()
+	batchSizeHistogram.Observe(float64(len(updates)))
+
+	msgs := make([]kafka.Message, len(updates))
+	for i, upd := range updates {
+		msgs[i] = upd.msg
+	}
+
+	redisRequestsTotal.Inc()
+	redisStart := time.Now()
+	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for _, upd := range updates {
+			updateScoresScript.Run(ctx, pipe, []string{rediskeys.LeaderboardGlobal},
+				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB)
+		}
+		return nil
+	})
+	if err != nil {
+		if ctx.Err() != nil {
+			return
+		}
+		// Transient: pipeline failure — route entire batch to DLT.
+		// TODO: route to a retry topic instead once infrastructure supports it.
+		redisErrorsTotal.Inc()
+		batchesErrorsTotal.Inc()
+		slog.Error("pipeline failed", "error", err, "batch_size", len(updates))
+		for _, msg := range msgs {
+			messagesErrorsTotal.Inc()
+			c.sendToDLT(ctx, msg, "redis_pipeline_error: "+err.Error())
+		}
+		return
+	}
+	redisRequestDuration.Observe(time.Since(redisStart).Seconds())
+
+	if err := c.reader.CommitMessages(ctx, msgs...); err != nil {
+		if ctx.Err() != nil {
+			return
+		}
+		// Scores updated but offset not saved — will reprocess on restart (at-least-once delivery).
+		// Idempotent score updates (e.g. via match_id deduplication) would prevent score corruption.
+		batchesErrorsTotal.Inc()
+		slog.Error("failed to commit batch", "error", err, "batch_size", len(updates))
+		return
+	}
+
+	batchProcessingDuration.Observe(time.Since(start).Seconds())
+	slog.Info("batch flushed", "messages", len(updates))
 }
 
 // sendToDLT forwards msg to the dead letter topic with a reason header, then commits

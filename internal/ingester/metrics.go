@@ -3,53 +3,80 @@ package ingester
 import "github.com/prometheus/client_golang/prometheus"
 
 var (
-	messagesProcessedCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	// Message-level metrics.
+	messagesReceivedTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "leaderboard",
 		Subsystem: "ingester",
-		Name:      "messages_processed_total",
-		Help:      "Total number of messages successfully fetched and entered processing",
+		Name:      "messages_received_total",
+		Help:      "Total number of messages successfully received from Kafka (includes messages later routed to the DLT).",
 	})
-	processingErrorsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	messagesErrorsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "leaderboard",
 		Subsystem: "ingester",
-		Name:      "processing_errors_total",
-		Help:      "Total number of errors encountered while processing messages",
+		Name:      "messages_errors_total",
+		Help:      "Total number of message-level failures: invalid payloads (poison pills) and messages lost to Redis pipeline failures.",
 	})
-	redisUpdatesCounter = prometheus.NewCounter(prometheus.CounterOpts{
+
+	// Batch-level metrics.
+	batchesTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "leaderboard",
 		Subsystem: "ingester",
-		Name:      "redis_updates_total",
-		Help:      "Total number of Redis score updates attempted",
+		Name:      "batches_total",
+		Help:      "Total number of batch flushes attempted.",
 	})
-	redisErrorsCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	batchesErrorsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "batches_errors_total",
+		Help:      "Total number of batch flushes that failed (pipeline or commit error).",
+	})
+	batchSizeHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "batch_size",
+		Help:      "Number of messages per batch flush.",
+		Buckets:   []float64{1, 5, 10, 25, 50, 75, 100},
+	})
+	batchProcessingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "batch_processing_duration_seconds",
+		Help:      "Duration of successful batch flushes in seconds (collect + pipeline + commit).",
+		Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 14),
+	})
+
+	// Redis-level metrics.
+	redisRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "redis_requests_total",
+		Help:      "Total number of Redis pipeline requests attempted.",
+	})
+	redisErrorsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "leaderboard",
 		Subsystem: "ingester",
 		Name:      "redis_errors_total",
-		Help:      "Total number of Redis score update errors",
+		Help:      "Total number of Redis pipeline requests that failed.",
 	})
-	redisUpdateDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+	redisRequestDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: "leaderboard",
 		Subsystem: "ingester",
-		Name:      "redis_update_duration_seconds",
-		Help:      "Duration of successful Redis score updates in seconds",
-		Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 14),
-	})
-	processingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "leaderboard",
-		Subsystem: "ingester",
-		Name:      "processing_duration_seconds",
-		Help:      "Duration of successful message processing in seconds",
+		Name:      "redis_request_duration_seconds",
+		Help:      "Duration of successful Redis pipeline round-trips in seconds.",
 		Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 14),
 	})
 )
 
 func init() {
 	prometheus.MustRegister(
-		messagesProcessedCounter,
-		processingErrorsCounter,
-		redisUpdatesCounter,
-		redisErrorsCounter,
-		redisUpdateDuration,
-		processingDuration,
+		messagesReceivedTotal,
+		messagesErrorsTotal,
+		batchesTotal,
+		batchesErrorsTotal,
+		batchSizeHistogram,
+		batchProcessingDuration,
+		redisRequestsTotal,
+		redisErrorsTotal,
+		redisRequestDuration,
 	)
 }
