@@ -77,6 +77,11 @@ func (c *Consumer) Close() {
 
 // Run collects and flushes batches until ctx is cancelled.
 //
+// Collection and flushing are decoupled: a dedicated goroutine collects the next
+// batch from Kafka while the main goroutine is flushing the previous one to Redis.
+// A channel of size 1 acts as the handoff — the collector stays one batch ahead,
+// so the flusher never waits for Kafka and the collector never waits for Redis.
+//
 // Error handling strategy:
 //
 // All processing errors — whether non-transient (malformed payload, unknown outcome) or
@@ -99,24 +104,38 @@ func (c *Consumer) Close() {
 // TODO: introduce a retry topic for transient Redis errors once infrastructure supports it.
 func (c *Consumer) Run(ctx context.Context) {
 	slog.Info("ingester started")
-	for {
-		updates, start := c.collectBatch(ctx)
-		if ctx.Err() != nil {
-			slog.Info("ingester shutting down")
-			return
+
+	ch := make(chan []matchUpdate, 1)
+
+	go func() {
+		defer close(ch)
+		for {
+			updates := c.collectBatch(ctx)
+			if ctx.Err() != nil {
+				return
+			}
+			if len(updates) == 0 {
+				continue
+			}
+			select {
+			case ch <- updates:
+			case <-ctx.Done():
+				return
+			}
 		}
-		if len(updates) == 0 {
-			continue
-		}
-		c.flushBatch(ctx, updates, start)
+	}()
+
+	for updates := range ch {
+		c.flushBatch(ctx, updates)
 	}
+	slog.Info("ingester shutting down")
 }
 
 // collectBatch fetches up to batchSize messages within batchTimeout, parsing each
 // into a matchUpdate. Non-transient errors (bad payload, unknown outcome) are
 // forwarded to the DLT inline and excluded from the returned batch.
-func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate, start time.Time) {
-	start = time.Now()
+func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
+	start := time.Now()
 	deadline := start.Add(batchTimeout)
 
 	for len(updates) < batchSize {
@@ -170,6 +189,7 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate, sta
 			deltaB:  deltaB,
 		})
 	}
+	batchCollectDuration.Observe(time.Since(start).Seconds())
 	return
 }
 
@@ -182,7 +202,8 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate, sta
 //
 // If the pipeline fails, all messages in the batch are routed to the DLT.
 // TODO: route to a retry topic instead once infrastructure supports it.
-func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate, start time.Time) {
+func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
+	start := time.Now()
 	batchesTotal.Inc()
 	batchSizeHistogram.Observe(float64(len(updates)))
 
@@ -228,7 +249,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate, start 
 		return
 	}
 
-	batchProcessingDuration.Observe(time.Since(start).Seconds())
+	batchFlushDuration.Observe(time.Since(start).Seconds())
 	slog.Info("batch flushed", "messages", len(updates))
 }
 

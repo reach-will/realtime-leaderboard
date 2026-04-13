@@ -37,11 +37,18 @@ var (
 		Help:      "Number of messages per batch flush.",
 		Buckets:   []float64{1, 5, 10, 25, 50, 75, 100},
 	})
-	batchProcessingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+	batchCollectDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: "leaderboard",
 		Subsystem: "ingester",
-		Name:      "batch_processing_duration_seconds",
-		Help:      "Duration of successful batch flushes in seconds (collect + pipeline + commit).",
+		Name:      "batch_collect_duration_seconds",
+		Help:      "Time spent collecting a batch from Kafka (FetchMessage loop + proto unmarshal).",
+		Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 14),
+	})
+	batchFlushDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "batch_flush_duration_seconds",
+		Help:      "Time spent flushing a batch to Redis and committing offsets.",
 		Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 14),
 	})
 
@@ -74,7 +81,8 @@ func init() {
 		batchesTotal,
 		batchesErrorsTotal,
 		batchSizeHistogram,
-		batchProcessingDuration,
+		batchCollectDuration,
+		batchFlushDuration,
 		redisRequestsTotal,
 		redisErrorsTotal,
 		redisRequestDuration,
