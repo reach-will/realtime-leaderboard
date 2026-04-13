@@ -22,14 +22,18 @@ type Producer struct {
 	players []string
 }
 
-// New creates a Producer from cfg, establishing a Kafka writer and a fixed player pool.
-func New(cfg Config) *Producer {
+// newPlayers generates a deterministic pool of player UUIDs.
+func newPlayers(count int) []string {
 	var playerNamespace = uuid.MustParse("a0000000-0000-0000-0000-000000000000")
-	players := make([]string, playerCount)
+	players := make([]string, count)
 	for i := range players {
 		players[i] = uuid.NewSHA1(playerNamespace, []byte(strconv.Itoa(i))).String()
 	}
+	return players
+}
 
+// New creates a Producer from cfg, establishing a Kafka writer and a fixed player pool.
+func New(cfg Config) *Producer {
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(cfg.KafkaAddr),
 		Topic:                  cfg.KafkaTopic,
@@ -37,7 +41,34 @@ func New(cfg Config) *Producer {
 		AllowAutoTopicCreation: true,
 	}
 
-	return &Producer{writer: writer, players: players}
+	return &Producer{writer: writer, players: newPlayers(playerCount)}
+}
+
+// randomMatch generates a single random match outcome from the player pool.
+func (p *Producer) randomMatch() *eventspb.MatchOutcome {
+	idx1 := rand.IntN(playerCount)
+	idx2 := rand.IntN(playerCount - 1)
+	if idx2 >= idx1 {
+		idx2++
+	}
+
+	var outcome eventspb.Outcome
+	switch rand.IntN(11) {
+	case 0:
+		outcome = eventspb.Outcome_OUTCOME_DRAW
+	case 1, 2, 3, 4, 5:
+		outcome = eventspb.Outcome_OUTCOME_PLAYER_B_WINS
+	default:
+		outcome = eventspb.Outcome_OUTCOME_PLAYER_A_WINS
+	}
+
+	return &eventspb.MatchOutcome{
+		MatchId:     uuid.New().String(),
+		PlayerA:     p.players[idx1],
+		PlayerB:     p.players[idx2],
+		Outcome:     outcome,
+		TimestampMs: time.Now().UnixMilli(),
+	}
 }
 
 // Run produces match outcome events until ctx is cancelled.
@@ -45,29 +76,7 @@ func (p *Producer) Run(ctx context.Context) {
 	slog.Info("simulator started")
 
 	for {
-		idx1 := rand.IntN(playerCount)
-		idx2 := rand.IntN(playerCount - 1)
-		if idx2 >= idx1 {
-			idx2++
-		}
-
-		var outcome eventspb.Outcome
-		switch rand.IntN(11) {
-		case 0:
-			outcome = eventspb.Outcome_OUTCOME_DRAW
-		case 1, 2, 3, 4, 5:
-			outcome = eventspb.Outcome_OUTCOME_PLAYER_B_WINS
-		default:
-			outcome = eventspb.Outcome_OUTCOME_PLAYER_A_WINS
-		}
-
-		event := &eventspb.MatchOutcome{
-			MatchId:     uuid.New().String(),
-			PlayerA:     p.players[idx1],
-			PlayerB:     p.players[idx2],
-			Outcome:     outcome,
-			TimestampMs: time.Now().UnixMilli(),
-		}
+		event := p.randomMatch()
 
 		payload, err := proto.Marshal(event)
 		if err != nil {
