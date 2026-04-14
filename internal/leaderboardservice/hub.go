@@ -63,7 +63,12 @@ func (h *Hub) Run(ctx context.Context) {
 			if !ok {
 				return
 			}
-			scores, err := h.rdb.ZRevRangeWithScores(ctx, rediskeys.LeaderboardGlobal, 0, maxLimit-1).Result()
+			scores, err := h.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
+				Key:   rediskeys.LeaderboardGlobal,
+				Start: 0,
+				Stop:  maxLimit - 1,
+				Rev:   true,
+			}).Result()
 			if err != nil {
 				slog.Error("hub: failed to fetch leaderboard", "error", err)
 				continue

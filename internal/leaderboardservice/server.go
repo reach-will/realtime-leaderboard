@@ -49,7 +49,12 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 		return nil, status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
 	}
 
-	topScores, err := s.rdb.ZRevRangeWithScores(ctx, rediskeys.LeaderboardGlobal, 0, int64(req.Limit-1)).Result()
+	topScores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
+		Key:   rediskeys.LeaderboardGlobal,
+		Start: 0,
+		Stop:  req.Limit - 1,
+		Rev:   true,
+	}).Result()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch top players: %v", err)
 	}
@@ -100,7 +105,12 @@ func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_S
 	ch := s.hub.Subscribe(stream.Context())
 
 	// Send an immediate snapshot so the client doesn't wait for the next ingester flush.
-	topScores, err := s.rdb.ZRevRangeWithScores(stream.Context(), rediskeys.LeaderboardGlobal, 0, int64(req.Limit-1)).Result()
+	topScores, err := s.rdb.ZRangeArgsWithScores(stream.Context(), redis.ZRangeArgs{
+		Key:   rediskeys.LeaderboardGlobal,
+		Start: 0,
+		Stop:  req.Limit - 1,
+		Rev:   true,
+	}).Result()
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to fetch initial leaderboard: %v", err)
 	}
