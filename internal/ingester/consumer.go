@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
 	"github.com/reach-will/realtime-leaderboard/internal/rediskeys"
 	"github.com/redis/go-redis/v9"
@@ -142,8 +143,9 @@ func (c *Consumer) Run(ctx context.Context) {
 // into a matchUpdate. Non-transient errors (bad payload, unknown outcome) are
 // forwarded to the DLT inline and excluded from the returned batch.
 func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
-	start := time.Now()
-	deadline := start.Add(batchTimeout)
+	timer := prometheus.NewTimer(batchCollectDuration)
+	defer timer.ObserveDuration()
+	deadline := time.Now().Add(batchTimeout)
 
 	for len(updates) < batchSize {
 		fetchCtx, cancel := context.WithDeadline(ctx, deadline)
@@ -198,7 +200,6 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 			deltaB:  deltaB,
 		})
 	}
-	batchCollectDuration.Observe(time.Since(start).Seconds())
 	return
 }
 
@@ -212,7 +213,8 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 // If the pipeline fails, all messages in the batch are routed to the DLT.
 // TODO: route to a retry topic instead once infrastructure supports it.
 func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
-	start := time.Now()
+	timer := prometheus.NewTimer(batchFlushDuration)
+	defer timer.ObserveDuration()
 	batchesTotal.Inc()
 	batchSizeHistogram.Observe(float64(len(updates)))
 
@@ -222,7 +224,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	}
 
 	redisRequestsTotal.Inc()
-	redisStart := time.Now()
+	redisTimer := prometheus.NewTimer(redisRequestDuration)
 	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, upd := range updates {
 			updateScoresScript.Run(ctx, pipe,
@@ -260,7 +262,6 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		return
 	}
 
-	batchFlushDuration.Observe(time.Since(start).Seconds())
 	slog.Info("batch flushed", "messages", len(updates))
 }
 
