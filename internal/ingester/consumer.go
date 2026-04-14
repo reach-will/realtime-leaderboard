@@ -262,6 +262,16 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		return
 	}
 
+	// Notify StreamTop subscribers that scores have changed. A missed publish
+	// is non-fatal — subscribers simply skip one update and receive the next.
+	err = c.rdb.Publish(ctx, rediskeys.LeaderboardUpdates, "").Err()
+	if ctx.Err() != nil {
+		return
+	}
+	if err != nil {
+		slog.Warn("failed to publish leaderboard update", "error", err)
+	}
+
 	slog.Info("batch flushed", "messages", len(updates))
 }
 

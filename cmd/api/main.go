@@ -52,6 +52,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	go svc.Start(ctx)
+
 	go func() {
 		slog.Info("API server listening", "addr", cfg.GRPCAddr)
 		if err := grpcServer.Serve(lis); err != nil {

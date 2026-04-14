@@ -12,10 +12,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const maxLimit = 1000
+
 // Server is the leaderboard gRPC service. Call Close when done.
 type Server struct {
 	pb.UnimplementedLeaderboardServiceServer
-	rdb *redis.Client
+	rdb         *redis.Client
+	hub *Hub
 }
 
 // New returns a leaderboard gRPC service implementation backed by Redis.
@@ -26,7 +29,13 @@ func New(cfg Config) *Server {
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
 	})
-	return &Server{rdb: rdb}
+	return &Server{rdb: rdb, hub: newHub(rdb)}
+}
+
+// Start runs the leaderboard hub until ctx is cancelled.
+// Call this once in a goroutine after the server starts.
+func (s *Server) Start(ctx context.Context) {
+	s.hub.Run(ctx)
 }
 
 // Close releases the underlying Redis connection.
@@ -35,6 +44,9 @@ func (s *Server) Close() { s.rdb.Close() }
 func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
 	if req.Limit <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "limit must be greater than 0")
+	}
+	if req.Limit > maxLimit {
+		return nil, status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
 	}
 
 	topScores, err := s.rdb.ZRevRangeWithScores(ctx, rediskeys.LeaderboardGlobal, 0, int64(req.Limit-1)).Result()
@@ -79,48 +91,22 @@ func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_S
 	if req.Limit <= 0 {
 		return status.Error(codes.InvalidArgument, "limit must be greater than 0")
 	}
+	if req.Limit > maxLimit {
+		return status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
+	}
 
-	var last []*pb.Player
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-
+	ch := s.hub.Subscribe(stream.Context())
 	for {
 		select {
 		case <-stream.Context().Done():
 			return nil
-		case <-ticker.C:
-			topScores, err := s.rdb.ZRevRangeWithScores(stream.Context(), rediskeys.LeaderboardGlobal, 0, int64(req.Limit-1)).Result()
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to fetch top players: %v", err)
+		case players := <-ch:
+			if int32(len(players)) > req.Limit {
+				players = players[:req.Limit]
 			}
-
-			players := make([]*pb.Player, len(topScores))
-			for i, score := range topScores {
-				players[i] = &pb.Player{
-					PlayerId: score.Member.(string),
-					Score:    score.Score,
-					Rank:     int32(i + 1),
-				}
-			}
-
-			if !playersEqual(last, players) {
-				if err := stream.Send(&pb.GetTopResponse{Players: players}); err != nil {
-					return err
-				}
-				last = players
+			if err := stream.Send(&pb.GetTopResponse{Players: players}); err != nil {
+				return err
 			}
 		}
 	}
-}
-
-func playersEqual(a, b []*pb.Player) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i].PlayerId != b[i].PlayerId || a[i].Score != b[i].Score {
-			return false
-		}
-	}
-	return true
 }
