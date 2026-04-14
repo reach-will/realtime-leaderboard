@@ -69,9 +69,10 @@ func New(cfg Config) *Consumer {
 		WriteTimeout: 3 * time.Second,
 	})
 	dlt := &kafka.Writer{
-		Addr:     kafka.TCP(cfg.KafkaAddr),
-		Topic:    cfg.KafkaDLTopic,
-		Balancer: &kafka.LeastBytes{},
+		Addr:                   kafka.TCP(cfg.KafkaAddr),
+		Topic:                  cfg.KafkaDLTopic,
+		Balancer:               &kafka.LeastBytes{},
+		AllowAutoTopicCreation: true,
 	}
 	return &Consumer{reader: reader, rdb: rdb, dlt: dlt}
 }
