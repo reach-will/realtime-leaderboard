@@ -95,7 +95,27 @@ func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_S
 		return status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
 	}
 
+	// Subscribe before the initial fetch so we don't miss an update that arrives
+	// between the fetch and the loop below.
 	ch := s.hub.Subscribe(stream.Context())
+
+	// Send an immediate snapshot so the client doesn't wait for the next ingester flush.
+	topScores, err := s.rdb.ZRevRangeWithScores(stream.Context(), rediskeys.LeaderboardGlobal, 0, int64(req.Limit-1)).Result()
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to fetch initial leaderboard: %v", err)
+	}
+	players := make([]*pb.Player, len(topScores))
+	for i, score := range topScores {
+		players[i] = &pb.Player{
+			PlayerId: score.Member.(string),
+			Score:    score.Score,
+			Rank:     int32(i + 1),
+		}
+	}
+	if err := stream.Send(&pb.GetTopResponse{Players: players}); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-stream.Context().Done():
