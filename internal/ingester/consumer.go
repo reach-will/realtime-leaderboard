@@ -233,6 +233,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		}
 		return nil
 	})
+	redisTimer.ObserveDuration()
 	if ctx.Err() != nil {
 		return
 	}
@@ -248,7 +249,6 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		}
 		return
 	}
-	redisRequestDuration.Observe(time.Since(redisStart).Seconds())
 
 	err = c.reader.CommitMessages(ctx, msgs...)
 	if ctx.Err() != nil {
