@@ -16,16 +16,15 @@ export const options = {
   },
 };
 
-const PLAYERS = [
-  "alice",
-  "bob",
-  "charlie",
-  "diana",
-  "eve",
-];
+// Each VU has its own JS context, so this flag is per-VU, not shared.
+// Connecting once per VU reuses the TCP connection across iterations.
+let connected = false;
 
 export default function () {
-  client.connect("localhost:50051", { plaintext: true });
+  if (!connected) {
+    client.connect("localhost:50051", { plaintext: true });
+    connected = true;
+  }
 
   // GetTop
   const topRes = client.invoke("leaderboard.v1.LeaderboardService/GetTop", {
@@ -47,6 +46,5 @@ export default function () {
       r.status === grpc.StatusOK || r.status === grpc.StatusNotFound,
   });
 
-  client.close();
   sleep(1);
 }
