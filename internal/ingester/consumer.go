@@ -2,6 +2,7 @@ package ingester
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strconv"
 	"time"
@@ -156,8 +157,8 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 		if ctx.Err() != nil {
 			return
 		}
-		if fetchCtx.Err() != nil {
-			return // batch window expired, flush what we have
+		if errors.Is(err, context.DeadlineExceeded) {
+			return // batch window elapsed, flush what we have
 		}
 		if err != nil {
 			slog.Error("failed to read message", "error", err)
