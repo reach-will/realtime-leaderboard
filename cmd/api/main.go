@@ -55,14 +55,14 @@ func main() {
 	go svc.Start(ctx)
 
 	go func() {
-		slog.Info("API server listening", "addr", cfg.GRPCAddr)
-		if err := grpcServer.Serve(lis); err != nil {
-			slog.Error("failed to serve", "error", err)
-			os.Exit(1)
-		}
+		<-ctx.Done()
+		slog.Info("API server shutting down")
+		grpcServer.GracefulStop()
 	}()
 
-	<-ctx.Done()
-	slog.Info("API server shutting down")
-	grpcServer.GracefulStop()
+	slog.Info("API server listening", "addr", cfg.GRPCAddr)
+	if err := grpcServer.Serve(lis); err != nil {
+		slog.Error("failed to serve", "error", err)
+		os.Exit(1)
+	}
 }
