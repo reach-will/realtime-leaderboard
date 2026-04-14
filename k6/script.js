@@ -32,19 +32,23 @@ export default function () {
   });
   check(topRes, {
     "GetTop status OK": (r) => r.status === grpc.StatusOK,
-    "GetTop returns players": (r) => r.message.players !== undefined,
+    "GetTop returns players": (r) => r.message.players && r.message.players.length > 0,
   });
 
-  // GetPlayer — pick a random player from the pool
-  const playerId = PLAYERS[Math.floor(Math.random() * PLAYERS.length)];
-  const playerRes = client.invoke(
-    "leaderboard.v1.LeaderboardService/GetPlayer",
-    { player_id: playerId }
-  );
-  check(playerRes, {
-    "GetPlayer status OK or NOT_FOUND": (r) =>
-      r.status === grpc.StatusOK || r.status === grpc.StatusNotFound,
-  });
+  // GetPlayer — pick a random player from the live top-10 results.
+  // Using real IDs from Redis avoids the previous bug where hardcoded names
+  // ("alice", "bob", ...) never existed, causing every check to pass as NOT_FOUND.
+  const players = topRes.message && topRes.message.players;
+  if (players && players.length > 0) {
+    const player = players[Math.floor(Math.random() * players.length)];
+    const playerRes = client.invoke(
+      "leaderboard.v1.LeaderboardService/GetPlayer",
+      { player_id: player.player_id }
+    );
+    check(playerRes, {
+      "GetPlayer status OK": (r) => r.status === grpc.StatusOK,
+    });
+  }
 
   sleep(1);
 }
