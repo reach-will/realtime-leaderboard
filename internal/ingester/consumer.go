@@ -150,13 +150,13 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 		msg, err := c.reader.FetchMessage(fetchCtx)
 		cancel()
 
+		if ctx.Err() != nil {
+			return
+		}
+		if fetchCtx.Err() != nil {
+			return // batch window expired, flush what we have
+		}
 		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			if fetchCtx.Err() != nil {
-				return // batch window expired, flush what we have
-			}
 			slog.Error("failed to read message", "error", err)
 			continue
 		}
@@ -164,7 +164,8 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 		messagesReceivedTotal.Inc()
 
 		var outcome eventspb.MatchOutcome
-		if err := proto.Unmarshal(msg.Value, &outcome); err != nil {
+		err = proto.Unmarshal(msg.Value, &outcome)
+		if err != nil {
 			// Non-transient: malformed payload will never deserialize successfully (poison pill).
 			messagesErrorsTotal.Inc()
 			slog.Error("failed to unmarshal message", "error", err)
@@ -230,10 +231,10 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		}
 		return nil
 	})
+	if ctx.Err() != nil {
+		return
+	}
 	if err != nil {
-		if ctx.Err() != nil {
-			return
-		}
 		// Transient: pipeline failure — route entire batch to DLT.
 		// TODO: route to a retry topic instead once infrastructure supports it.
 		redisErrorsTotal.Inc()
@@ -247,10 +248,11 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	}
 	redisRequestDuration.Observe(time.Since(redisStart).Seconds())
 
-	if err := c.reader.CommitMessages(ctx, msgs...); err != nil {
-		if ctx.Err() != nil {
-			return
-		}
+	err = c.reader.CommitMessages(ctx, msgs...)
+	if ctx.Err() != nil {
+		return
+	}
+	if err != nil {
 		// Scores updated but offset not saved — will reprocess on restart (at-least-once delivery).
 		// Idempotent score updates (e.g. via match_id deduplication) would prevent score corruption.
 		batchesErrorsTotal.Inc()
@@ -287,7 +289,11 @@ func (c *Consumer) sendToDLT(ctx context.Context, msg kafka.Message, reason stri
 		)
 		return
 	}
-	if err := c.reader.CommitMessages(ctx, msg); err != nil && ctx.Err() == nil {
+	err = c.reader.CommitMessages(ctx, msg)
+	if ctx.Err() != nil {
+		return
+	}
+	if err != nil {
 		slog.Error("failed to commit after DLT write", "error", err)
 	}
 }
