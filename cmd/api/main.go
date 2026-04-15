@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -57,7 +58,20 @@ func main() {
 	go func() {
 		<-ctx.Done()
 		slog.Info("API server shutting down")
-		grpcServer.GracefulStop()
+
+		stopped := make(chan struct{})
+		go func() {
+			grpcServer.GracefulStop()
+			close(stopped)
+		}()
+
+		select {
+		case <-stopped:
+			slog.Info("graceful shutdown complete")
+		case <-time.After(15 * time.Second):
+			slog.Warn("graceful shutdown timed out, forcing stop")
+			grpcServer.Stop()
+		}
 	}()
 
 	slog.Info("API server listening", "addr", cfg.GRPCAddr)
