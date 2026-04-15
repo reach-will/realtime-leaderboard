@@ -10,6 +10,7 @@ import (
 	"time"
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/prometheus/client_golang/prometheus"
 	pb "github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1"
 	"github.com/reach-will/realtime-leaderboard/internal/admin"
@@ -40,9 +41,20 @@ func main() {
 	)
 	prometheus.MustRegister(srvMetrics)
 
+	recoveryHandler := recovery.WithRecoveryHandler(func(p any) error {
+		slog.Error("panic recovered", "panic", p)
+		return nil
+	})
+
 	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(srvMetrics.UnaryServerInterceptor()),
-		grpc.ChainStreamInterceptor(srvMetrics.StreamServerInterceptor()),
+		grpc.ChainUnaryInterceptor(
+			srvMetrics.UnaryServerInterceptor(),
+			recovery.UnaryServerInterceptor(recoveryHandler),
+		),
+		grpc.ChainStreamInterceptor(
+			srvMetrics.StreamServerInterceptor(),
+			recovery.StreamServerInterceptor(recoveryHandler),
+		),
 	)
 	pb.RegisterLeaderboardServiceServer(grpcServer, svc)
 	registerReflection(grpcServer)
