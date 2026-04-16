@@ -13,6 +13,18 @@ spec:
       labels:
         app: leaderboard-ingester
     spec:
+      initContainers:
+        - name: wait-for-topic
+          image: apache/kafka:3.9.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until /opt/kafka/bin/kafka-topics.sh --describe \
+                --topic leaderboard.match.completed \
+                --bootstrap-server kafka:9092; do
+                echo "Waiting for topic..."; sleep 3
+              done
       containers:
         - name: leaderboard-ingester
           image: ghcr.io/reach-will/realtime-leaderboard/ingester:latest

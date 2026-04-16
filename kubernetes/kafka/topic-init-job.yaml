@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topic-init
+  namespace: default
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: kafka-topic-init
+          image: apache/kafka:3.9.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until /opt/kafka/bin/kafka-topics.sh --list --bootstrap-server kafka:9092; do
+                echo "Waiting for Kafka..."; sleep 3
+              done
+              /opt/kafka/bin/kafka-topics.sh \
+                --create --if-not-exists \
+                --topic leaderboard.match.completed \
+                --bootstrap-server kafka:9092 \
+                --partitions 30 \
+                --replication-factor 1
