@@ -6,7 +6,7 @@ GRPC_ADDR      := :50051
 API_ADMIN_ADDR := :2113
 ING_ADMIN_ADDR := :2112
 
-.PHONY: up down topic top10 proto api simulator ingester ps
+.PHONY: up down topic top10 proto api simulator loadgen ingester ps
 
 up:
 	docker compose up -d
@@ -43,6 +43,10 @@ api:
 simulator:
 	KAFKA_ADDR=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
 	go run ./cmd/simulator
+
+loadgen:
+	KAFKA_ADDR=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
+	go run ./cmd/loadgen
 
 ingester:
 	KAFKA_ADDR=$(KAFKA_ADDR) KAFKA_TOPIC=$(KAFKA_TOPIC) \
