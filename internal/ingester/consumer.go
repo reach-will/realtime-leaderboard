@@ -28,10 +28,11 @@ const (
 	batchTimeout = 20 * time.Millisecond
 
 	// processedMatchesTTL is the lifetime of the processed-match-IDs set in Redis.
-	// It only needs to outlive the redelivery window: the gap between a partial pipeline
-	// apply and the next successful commit after a consumer restart, which is seconds in
-	// practice. 24 hours is deliberately conservative.
-	processedMatchesTTL = 24 * 60 * 60 // seconds
+	// Must outlive the redelivery window: the gap between a partial pipeline apply
+	// and the next successful commit after a consumer restart, which is seconds in
+	// practice. 5 minutes is a conservative bound that keeps SET size manageable
+	// under high-throughput load.
+	processedMatchesTTL = 5 * 60 // seconds
 )
 
 // matchUpdate holds the parsed outcome of a single match ready to be applied to Redis.
