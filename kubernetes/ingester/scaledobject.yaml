@@ -12,7 +12,7 @@ spec:
   triggers:
     - type: kafka
       metadata:
-        bootstrapServers: kafka:9092
+        bootstrapServers: kafka.default.svc.cluster.local:9092
         topic: leaderboard.match.completed
         consumerGroup: leaderboard.ingester
         lagThreshold: "10"
