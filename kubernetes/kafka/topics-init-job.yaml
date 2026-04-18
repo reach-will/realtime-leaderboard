@@ -1,14 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: kafka-topic-init
+  name: kafka-topics-init
   namespace: default
 spec:
   template:
     spec:
       restartPolicy: OnFailure
       containers:
-        - name: kafka-topic-init
+        - name: kafka-topics-init
           image: apache/kafka:3.9.0
           command:
             - /bin/sh
@@ -22,4 +22,10 @@ spec:
                 --topic leaderboard.match.completed \
                 --bootstrap-server kafka:9092 \
                 --partitions 30 \
+                --replication-factor 1
+              /opt/kafka/bin/kafka-topics.sh \
+                --create --if-not-exists \
+                --topic leaderboard.match.completed.dlt \
+                --bootstrap-server kafka:9092 \
+                --partitions 1 \
                 --replication-factor 1
