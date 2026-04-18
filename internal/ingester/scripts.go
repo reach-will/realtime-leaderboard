@@ -19,14 +19,14 @@ import "github.com/redis/go-redis/v9"
 // ARGV[5]  — match ID
 // ARGV[6]  — TTL for the processed-matches set in seconds
 //
-// Returns a two-element array [newScoreA, newScoreB], or nil if the match was already processed.
+// Returns 1 if both scores were updated, or 0 if the match was already processed (duplicate).
 var updateScoresScript = redis.NewScript(`
 if redis.call('SISMEMBER', KEYS[2], ARGV[5]) == 1 then
-  return nil
+  return 0
 end
 redis.call('SADD', KEYS[2], ARGV[5])
 redis.call('EXPIRE', KEYS[2], ARGV[6], 'NX')
-local scoreA = redis.call('ZINCRBY', KEYS[1], ARGV[1], ARGV[2])
-local scoreB = redis.call('ZINCRBY', KEYS[1], ARGV[3], ARGV[4])
-return {scoreA, scoreB}
+redis.call('ZINCRBY', KEYS[1], ARGV[1], ARGV[2])
+redis.call('ZINCRBY', KEYS[1], ARGV[3], ARGV[4])
+return 1
 `)

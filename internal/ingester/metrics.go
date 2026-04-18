@@ -60,6 +60,14 @@ var (
 		Help:      "Number of ingester instances currently processing messages. Increments when Run starts, decrements after graceful shutdown completes.",
 	})
 
+	// Duplicate-level metrics.
+	messagesDuplicatesTotal = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "messages_duplicates_total",
+		Help:      "Total number of match events skipped because the match ID was already processed (idempotency deduplication).",
+	})
+
 	// Redis-level metrics.
 	redisRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "leaderboard",
@@ -87,6 +95,7 @@ func init() {
 		activeInstances,
 		messagesReceivedTotal,
 		messagesErrorsTotal,
+		messagesDuplicatesTotal,
 		batchesTotal,
 		batchesErrorsTotal,
 		batchSizeHistogram,

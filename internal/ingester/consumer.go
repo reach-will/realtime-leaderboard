@@ -234,11 +234,12 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		msgs[i] = upd.msg
 	}
 
+	cmds := make([]*redis.Cmd, len(updates))
 	redisRequestsTotal.Inc()
 	redisTimer := prometheus.NewTimer(redisRequestDuration)
 	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		for _, upd := range updates {
-			updateScoresScript.Run(ctx, pipe,
+		for i, upd := range updates {
+			cmds[i] = updateScoresScript.Run(ctx, pipe,
 				[]string{rediskeys.LeaderboardGlobal, rediskeys.ProcessedMatches},
 				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB, upd.matchID, processedMatchesTTL)
 		}
@@ -259,6 +260,18 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 			c.sendToDLT(ctx, msg, "redis_pipeline_error: "+err.Error())
 		}
 		return
+	}
+
+	for i, cmd := range cmds {
+		result, err := cmd.Int()
+		if err != nil {
+			slog.Error("unexpected script result", "error", err, "match_id", updates[i].matchID)
+			continue
+		}
+		if result == 0 {
+			messagesDuplicatesTotal.Inc()
+			slog.Debug("duplicate match skipped", "match_id", updates[i].matchID)
+		}
 	}
 
 	err = c.reader.CommitMessages(ctx, msgs...)
