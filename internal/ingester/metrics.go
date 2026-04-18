@@ -52,6 +52,14 @@ var (
 		Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 14),
 	})
 
+	// Instance-level metrics.
+	activeInstances = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "leaderboard",
+		Subsystem: "ingester",
+		Name:      "active_instances",
+		Help:      "Number of ingester instances currently processing messages. Increments when Run starts, decrements after graceful shutdown completes.",
+	})
+
 	// Redis-level metrics.
 	redisRequestsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "leaderboard",
@@ -76,6 +84,7 @@ var (
 
 func init() {
 	prometheus.MustRegister(
+		activeInstances,
 		messagesReceivedTotal,
 		messagesErrorsTotal,
 		batchesTotal,

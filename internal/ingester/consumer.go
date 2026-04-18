@@ -121,6 +121,9 @@ func (c *Consumer) Run(ctx context.Context) {
 		return
 	}
 
+	activeInstances.Inc()
+	defer activeInstances.Dec()
+
 	ch := make(chan []matchUpdate, 1)
 
 	go func() {
