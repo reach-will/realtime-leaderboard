@@ -1,7 +1,7 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: leaderboard-scaler
+  name: leaderboard-ingester-scaler
   namespace: default
 spec:
   scaleTargetRef:
