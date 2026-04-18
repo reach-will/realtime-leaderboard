@@ -116,7 +116,7 @@ func (c *Consumer) Close() {
 func (c *Consumer) Run(ctx context.Context) {
 	slog.Info("ingester started")
 
-	if err := updateScoresScript.Load(ctx, c.rdb); err != nil {
+	if err := updateScoresScript.Load(ctx, c.rdb).Err(); err != nil {
 		slog.Error("failed to load Redis Lua script", "error", err)
 		return
 	}
