@@ -68,19 +68,19 @@ func (p *Producer) randomMatch() (kafka.Message, error) {
 		outcome = eventspb.Outcome_OUTCOME_PLAYER_A_WINS
 	}
 
-	event := &eventspb.MatchOutcome{
-		MatchId:     uuid.New().String(),
+	id := uuid.New()
+	payload, err := proto.Marshal(&eventspb.MatchOutcome{
+		MatchId:     id.String(),
 		PlayerA:     p.players[idx1],
 		PlayerB:     p.players[idx2],
 		Outcome:     outcome,
 		TimestampMs: time.Now().UnixMilli(),
-	}
-
-	payload, err := proto.Marshal(event)
+	})
 	if err != nil {
 		return kafka.Message{}, err
 	}
-	return kafka.Message{Key: []byte(event.MatchId), Value: payload}, nil
+
+	return kafka.Message{Key: id[:], Value: payload}, nil
 }
 
 // Run produces match outcome events at the configured rate until ctx is cancelled.
