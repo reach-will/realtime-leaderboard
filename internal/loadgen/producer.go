@@ -38,10 +38,9 @@ func newPlayers(count int) []string {
 // and writer-level batching to maximise throughput.
 func New(cfg Config) *Producer {
 	writer := &kafka.Writer{
-		Addr:                   kafka.TCP(cfg.KafkaAddr),
-		Topic:                  cfg.KafkaTopic,
-		Balancer:               &kafka.Hash{},
-		AllowAutoTopicCreation: true,
+		Addr:     kafka.TCP(cfg.KafkaAddr),
+		Topic:    cfg.KafkaTopic,
+		Balancer: &kafka.Hash{},
 		// Large internal batch so the writer aggregates across all worker goroutines.
 		BatchSize:    1_000,
 		BatchTimeout: 5 * time.Millisecond,

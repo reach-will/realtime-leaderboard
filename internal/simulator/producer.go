@@ -35,10 +35,9 @@ func newPlayers(count int) []string {
 // New creates a Producer from cfg, establishing a Kafka writer and a fixed player pool.
 func New(cfg Config) *Producer {
 	writer := &kafka.Writer{
-		Addr:                   kafka.TCP(cfg.KafkaAddr),
-		Topic:                  cfg.KafkaTopic,
-		Balancer:               &kafka.Hash{},
-		AllowAutoTopicCreation: true,
+		Addr:     kafka.TCP(cfg.KafkaAddr),
+		Topic:    cfg.KafkaTopic,
+		Balancer: &kafka.Hash{},
 	}
 
 	return &Producer{writer: writer, players: newPlayers(playerCount)}
