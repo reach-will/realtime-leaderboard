@@ -288,8 +288,6 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		return
 	}
 	if err != nil {
-		// Scores updated but offset not saved — will reprocess on restart (at-least-once delivery).
-		// Idempotent score updates (e.g. via match_id deduplication) would prevent score corruption.
 		batchesErrorsTotal.Inc()
 		slog.Error("failed to commit batch", "error", err, "batch_size", len(updates))
 		return
