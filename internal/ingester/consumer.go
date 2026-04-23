@@ -62,6 +62,12 @@ func New(cfg Config) *Consumer {
 		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},
 		MinBytes: 1,
 		MaxBytes: 10e6,
+		// CommitInterval > 0 makes CommitMessages return immediately; kafka-go's
+		// internal commit loop goroutine flushes offsets to the coordinator on
+		// this interval. The trade-off is that on a crash the consumer may
+		// re-read up to CommitInterval worth of already-processed messages —
+		// safe here because score updates are idempotent via match-ID deduplication.
+		CommitInterval: 500 * time.Millisecond,
 	})
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         cfg.RedisAddr,
@@ -220,6 +226,9 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 // Each script call atomically updates both players' scores for a single match
 // (see scripts.go). Pipelining preserves per-match atomicity while still batching
 // all network I/O into one round-trip.
+//
+// CommitMessages returns immediately because CommitInterval > 0 on the reader;
+// the library's internal commit goroutine flushes offsets on the configured timer.
 //
 // If the pipeline fails, all messages in the batch are routed to the DLT.
 // TODO: route to a retry topic instead once infrastructure supports it.
