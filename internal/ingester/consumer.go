@@ -325,7 +325,7 @@ func (c *Consumer) sendToDLT(ctx context.Context, msg kafka.Message, reason stri
 		},
 	})
 	if err != nil {
-		slog.Error("failed to write to DLT — message will be reprocessed on restart",
+		slog.Error("failed to write to DLT: message will be reprocessed on restart",
 			"error", err,
 			"reason", reason,
 		)
