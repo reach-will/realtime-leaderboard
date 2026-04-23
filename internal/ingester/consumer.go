@@ -239,7 +239,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	redisTimer := prometheus.NewTimer(redisRequestDuration)
 	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, upd := range updates {
-			cmds[i] = updateScoresScript.Run(ctx, pipe,
+			cmds[i] = updateScoresScript.Eval(ctx, pipe,
 				[]string{rediskeys.LeaderboardGlobal, rediskeys.ProcessedMatches},
 				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB, upd.matchID, processedMatchesTTL)
 		}
