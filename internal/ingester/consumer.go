@@ -101,24 +101,17 @@ func (c *Consumer) Close() {
 //
 // Error handling strategy:
 //
-// All processing errors — whether non-transient (malformed payload, unknown outcome) or
-// transient (Redis timeouts, network blips) — are routed directly to the Dead Letter Topic
-// (DLT) and committed, keeping the main consumer unblocked.
-//
-// A more resilient architecture would separate these two classes:
+// Processing errors are split into two classes:
 //   - Non-transient (poison pills): malformed or semantically invalid messages that will
-//     never succeed regardless of retries. Route immediately to DLT.
+//     never succeed regardless of retries. Routed immediately to the DLT.
 //   - Transient (client errors): temporary downstream failures (e.g. Redis timeouts) that
-//     may resolve on retry. Route to a dedicated retry topic consumed by a separate consumer,
-//     with backoff between attempts, graduating to DLT after exhaustion. This avoids blocking
-//     the main partition while still preserving the message for later reprocessing.
+//     may resolve on retry. Routed to the retry topic via sendBatchToRetryTopic, which
+//     currently forwards to the DLT until retry infrastructure is in place.
 //
-// See Confluent's Pattern 3 (retry topic) for the transient case:
+// See Confluent's Pattern 3 (retry topic) for the intended transient-error architecture:
 // https://www.confluent.io/blog/error-handling-patterns-in-kafka/
 // And Uber's tiered retry topic architecture for a production-grade version of the same idea:
 // https://www.uber.com/ie/en/blog/reliable-reprocessing/
-//
-// TODO: introduce a retry topic for transient Redis errors once infrastructure supports it.
 func (c *Consumer) Run(ctx context.Context) {
 	slog.Info("ingester started")
 
@@ -230,8 +223,7 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 // CommitMessages returns immediately because CommitInterval > 0 on the reader;
 // the library's internal commit goroutine flushes offsets on the configured timer.
 //
-// If the pipeline fails, all messages in the batch are routed to the DLT.
-// TODO: route to a retry topic instead once infrastructure supports it.
+// If the pipeline fails, all messages in the batch are routed to the retry topic.
 func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	timer := prometheus.NewTimer(batchFlushDuration)
 	defer timer.ObserveDuration()
@@ -259,15 +251,12 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		return
 	}
 	if err != nil {
-		// Transient: pipeline failure — route entire batch to DLT.
-		// TODO: route to a retry topic instead once infrastructure supports it.
+		// Transient: pipeline failure — route entire batch to retry topic.
 		redisErrorsTotal.Inc()
 		batchesErrorsTotal.Inc()
+		messagesErrorsTotal.Add(float64(len(updates)))
 		slog.Error("pipeline failed", "error", err, "batch_size", len(updates))
-		for _, msg := range msgs {
-			messagesErrorsTotal.Inc()
-			c.sendToDLT(ctx, msg, "redis_pipeline_error: "+err.Error())
-		}
+		c.sendBatchToRetryTopic(ctx, msgs, "redis_pipeline_error: "+err.Error())
 		return
 	}
 
@@ -304,6 +293,57 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	}
 
 	slog.Info("batch flushed", "messages", len(updates))
+}
+
+// sendBatchToRetryTopic routes a batch of transiently-failed messages for reprocessing.
+// Transient failures (e.g. Redis pipeline timeouts) may resolve on retry and should not
+// be permanently discarded — routing them here keeps the main consumer unblocked while
+// preserving the messages for a later attempt.
+//
+// TODO: replace the DLT fallback below with a dedicated retry topic consumed by a separate
+// consumer with exponential backoff between attempts, graduating to the DLT after exhaustion.
+// See Confluent's Pattern 3: https://www.confluent.io/blog/error-handling-patterns-in-kafka/
+func (c *Consumer) sendBatchToRetryTopic(ctx context.Context, msgs []kafka.Message, reason string) {
+	c.sendBatchToDLT(ctx, msgs, reason)
+}
+
+// sendBatchToDLT forwards a slice of messages to the dead letter topic in a single
+// WriteMessages call, then commits all offsets together. This avoids the per-message
+// kafka.Writer BatchTimeout overhead that would otherwise serialize each write
+// sequentially (~1s each) and cause ~N×BatchTimeout idle time after a pipeline failure.
+func (c *Consumer) sendBatchToDLT(ctx context.Context, msgs []kafka.Message, reason string) {
+	if ctx.Err() != nil {
+		return
+	}
+	dltMsgs := make([]kafka.Message, len(msgs))
+	for i, msg := range msgs {
+		dltMsgs[i] = kafka.Message{
+			Key:   msg.Key,
+			Value: msg.Value,
+			Headers: []kafka.Header{
+				{Key: "error-reason", Value: []byte(reason)},
+				{Key: "original-topic", Value: []byte(msg.Topic)},
+				{Key: "original-partition", Value: []byte(strconv.Itoa(msg.Partition))},
+				{Key: "original-offset", Value: []byte(strconv.FormatInt(msg.Offset, 10))},
+			},
+		}
+	}
+	err := c.dlt.WriteMessages(ctx, dltMsgs...)
+	if err != nil {
+		slog.Error("failed to write batch to DLT: messages will be reprocessed on restart",
+			"error", err,
+			"reason", reason,
+			"count", len(msgs),
+		)
+		return
+	}
+	err = c.reader.CommitMessages(ctx, msgs...)
+	if ctx.Err() != nil {
+		return
+	}
+	if err != nil {
+		slog.Error("failed to commit batch after DLT write", "error", err)
+	}
 }
 
 // sendToDLT forwards msg to the dead letter topic with a reason header, then commits
