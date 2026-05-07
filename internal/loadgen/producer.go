@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const playerCount = 100
+const playerCount = 1000
 
 // Producer generates random match outcomes at high throughput and publishes them to Kafka.
 // Call Close when done.
