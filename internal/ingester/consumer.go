@@ -241,7 +241,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, upd := range updates {
 			cmds[i] = updateScoresScript.Eval(ctx, pipe,
-				[]string{rediskeys.LeaderboardGlobal, rediskeys.ProcessedMatches},
+				[]string{rediskeys.ScoreGlobal, rediskeys.MatchesProcessed},
 				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB, upd.matchID, processedMatchesTTL)
 		}
 		return nil
@@ -284,7 +284,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 
 	// Notify StreamTop subscribers that scores have changed. A missed publish
 	// is non-fatal — subscribers simply skip one update and receive the next.
-	err = c.rdb.Publish(ctx, rediskeys.LeaderboardUpdates, "").Err()
+	err = c.rdb.Publish(ctx, rediskeys.ScoresUpdated, "").Err()
 	if ctx.Err() != nil {
 		return
 	}

@@ -1,4 +1,4 @@
-package leaderboardservice
+package scoreboardservice
 
 import (
 	"context"
@@ -16,8 +16,8 @@ const maxLimit = 1000
 
 // Server is the leaderboard gRPC service. Call Close when done.
 type Server struct {
-	pb.UnimplementedLeaderboardServiceServer
-	rdb         *redis.Client
+	pb.UnimplementedScoreboardServiceServer
+	rdb *redis.Client
 	hub *Hub
 }
 
@@ -50,7 +50,7 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 	}
 
 	topScores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
-		Key:   rediskeys.LeaderboardGlobal,
+		Key:   rediskeys.ScoreGlobal,
 		Start: 0,
 		Stop:  req.Limit - 1,
 		Rev:   true,
@@ -75,7 +75,7 @@ func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 		return nil, status.Error(codes.InvalidArgument, "player_id is required")
 	}
 
-	result, err := s.rdb.ZRevRankWithScore(ctx, rediskeys.LeaderboardGlobal, req.PlayerId).Result()
+	result, err := s.rdb.ZRevRankWithScore(ctx, rediskeys.ScoreGlobal, req.PlayerId).Result()
 	if errors.Is(err, redis.Nil) {
 		return nil, status.Errorf(codes.NotFound, "player %q not found", req.PlayerId)
 	}
@@ -92,7 +92,7 @@ func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 	}, nil
 }
 
-func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_StreamTopServer) error {
+func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.ScoreboardService_StreamTopServer) error {
 	if req.Limit <= 0 {
 		return status.Error(codes.InvalidArgument, "limit must be greater than 0")
 	}
@@ -106,7 +106,7 @@ func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_S
 
 	// Send an immediate snapshot so the client doesn't wait for the next ingester flush.
 	topScores, err := s.rdb.ZRangeArgsWithScores(stream.Context(), redis.ZRangeArgs{
-		Key:   rediskeys.LeaderboardGlobal,
+		Key:   rediskeys.ScoreGlobal,
 		Start: 0,
 		Stop:  req.Limit - 1,
 		Rev:   true,

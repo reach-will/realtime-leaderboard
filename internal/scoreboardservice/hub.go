@@ -1,4 +1,4 @@
-package leaderboardservice
+package scoreboardservice
 
 import (
 	"context"
@@ -52,7 +52,7 @@ func (h *Hub) Subscribe(ctx context.Context) <-chan []*pb.Player {
 // Run subscribes to leaderboard:updates and fans out snapshots until ctx is
 // cancelled. Call this once in a goroutine when the server starts.
 func (h *Hub) Run(ctx context.Context) {
-	pubsub := h.rdb.Subscribe(ctx, rediskeys.LeaderboardUpdates)
+	pubsub := h.rdb.Subscribe(ctx, rediskeys.ScoresUpdated)
 	defer pubsub.Close()
 
 	for {
@@ -64,13 +64,13 @@ func (h *Hub) Run(ctx context.Context) {
 				return
 			}
 			scores, err := h.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
-				Key:   rediskeys.LeaderboardGlobal,
+				Key:   rediskeys.ScoreGlobal,
 				Start: 0,
 				Stop:  maxLimit - 1,
 				Rev:   true,
 			}).Result()
 			if err != nil {
-				slog.Error("hub: failed to fetch leaderboard", "error", err)
+				slog.Error("hub: failed to fetch scoreboard", "error", err)
 				continue
 			}
 

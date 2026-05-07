@@ -14,18 +14,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	pb "github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1"
 	"github.com/reach-will/realtime-leaderboard/internal/admin"
-	"github.com/reach-will/realtime-leaderboard/internal/leaderboardservice"
+	"github.com/reach-will/realtime-leaderboard/internal/scoreboardservice"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	cfg, err := leaderboardservice.Load()
+	cfg, err := scoreboardservice.Load()
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
 
-	svc := leaderboardservice.New(cfg)
+	svc := scoreboardservice.New(cfg)
 	defer svc.Close()
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
@@ -56,7 +56,7 @@ func main() {
 			recovery.StreamServerInterceptor(recoveryHandler),
 		),
 	)
-	pb.RegisterLeaderboardServiceServer(grpcServer, svc)
+	pb.RegisterScoreboardServiceServer(grpcServer, svc)
 	registerReflection(grpcServer)
 	srvMetrics.InitializeMetrics(grpcServer)
 

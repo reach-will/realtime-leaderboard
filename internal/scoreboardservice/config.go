@@ -1,4 +1,4 @@
-package leaderboardservice
+package scoreboardservice
 
 import (
 	"fmt"

@@ -1,7 +1,7 @@
 package rediskeys
 
 const (
-	LeaderboardGlobal  = "leaderboard:global"
-	LeaderboardUpdates = "leaderboard:updates"
-	ProcessedMatches   = "ingester:processed_matches"
+	ScoreGlobal      = "score:global"
+	ScoresUpdated    = "scores:updated"
+	MatchesProcessed = "matches:processed"
 )

@@ -19,60 +19,59 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LeaderboardService_GetTop_FullMethodName    = "/leaderboard.v1.LeaderboardService/GetTop"
-	LeaderboardService_GetPlayer_FullMethodName = "/leaderboard.v1.LeaderboardService/GetPlayer"
-	LeaderboardService_StreamTop_FullMethodName = "/leaderboard.v1.LeaderboardService/StreamTop"
+	ScoreboardService_GetTop_FullMethodName    = "/leaderboard.v1.ScoreboardService/GetTop"
+	ScoreboardService_GetPlayer_FullMethodName = "/leaderboard.v1.ScoreboardService/GetPlayer"
+	ScoreboardService_StreamTop_FullMethodName = "/leaderboard.v1.ScoreboardService/StreamTop"
 )
 
-// LeaderboardServiceClient is the client API for LeaderboardService service.
+// ScoreboardServiceClient is the client API for ScoreboardService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// LeaderboardService exposes read-only access to the leaderboard.
+// ScoreboardService exposes read-only access to the live scoreboard.
 // Score updates are ingested asynchronously via Kafka.
 // This API reflects the current state of the Redis sorted set.
-type LeaderboardServiceClient interface {
+type ScoreboardServiceClient interface {
 	// GetTop returns the top N players by score, highest first.
 	GetTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (*GetTopResponse, error)
 	// GetPlayer returns a single player's current score and rank.
 	// Returns NOT_FOUND if the player has not yet appeared in any match.
 	GetPlayer(ctx context.Context, in *GetPlayerRequest, opts ...grpc.CallOption) (*GetPlayerResponse, error)
-	// StreamTop streams the top N players whenever the leaderboard changes.
-	// The server polls Redis and pushes a new response only when scores differ.
+	// StreamTop streams the top N players whenever scores change.
 	StreamTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetTopResponse], error)
 }
 
-type leaderboardServiceClient struct {
+type scoreboardServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewLeaderboardServiceClient(cc grpc.ClientConnInterface) LeaderboardServiceClient {
-	return &leaderboardServiceClient{cc}
+func NewScoreboardServiceClient(cc grpc.ClientConnInterface) ScoreboardServiceClient {
+	return &scoreboardServiceClient{cc}
 }
 
-func (c *leaderboardServiceClient) GetTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (*GetTopResponse, error) {
+func (c *scoreboardServiceClient) GetTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (*GetTopResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetTopResponse)
-	err := c.cc.Invoke(ctx, LeaderboardService_GetTop_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ScoreboardService_GetTop_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *leaderboardServiceClient) GetPlayer(ctx context.Context, in *GetPlayerRequest, opts ...grpc.CallOption) (*GetPlayerResponse, error) {
+func (c *scoreboardServiceClient) GetPlayer(ctx context.Context, in *GetPlayerRequest, opts ...grpc.CallOption) (*GetPlayerResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPlayerResponse)
-	err := c.cc.Invoke(ctx, LeaderboardService_GetPlayer_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, ScoreboardService_GetPlayer_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *leaderboardServiceClient) StreamTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetTopResponse], error) {
+func (c *scoreboardServiceClient) StreamTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetTopResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &LeaderboardService_ServiceDesc.Streams[0], LeaderboardService_StreamTop_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ScoreboardService_ServiceDesc.Streams[0], ScoreboardService_StreamTop_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -87,131 +86,130 @@ func (c *leaderboardServiceClient) StreamTop(ctx context.Context, in *GetTopRequ
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LeaderboardService_StreamTopClient = grpc.ServerStreamingClient[GetTopResponse]
+type ScoreboardService_StreamTopClient = grpc.ServerStreamingClient[GetTopResponse]
 
-// LeaderboardServiceServer is the server API for LeaderboardService service.
-// All implementations must embed UnimplementedLeaderboardServiceServer
+// ScoreboardServiceServer is the server API for ScoreboardService service.
+// All implementations must embed UnimplementedScoreboardServiceServer
 // for forward compatibility.
 //
-// LeaderboardService exposes read-only access to the leaderboard.
+// ScoreboardService exposes read-only access to the live scoreboard.
 // Score updates are ingested asynchronously via Kafka.
 // This API reflects the current state of the Redis sorted set.
-type LeaderboardServiceServer interface {
+type ScoreboardServiceServer interface {
 	// GetTop returns the top N players by score, highest first.
 	GetTop(context.Context, *GetTopRequest) (*GetTopResponse, error)
 	// GetPlayer returns a single player's current score and rank.
 	// Returns NOT_FOUND if the player has not yet appeared in any match.
 	GetPlayer(context.Context, *GetPlayerRequest) (*GetPlayerResponse, error)
-	// StreamTop streams the top N players whenever the leaderboard changes.
-	// The server polls Redis and pushes a new response only when scores differ.
+	// StreamTop streams the top N players whenever scores change.
 	StreamTop(*GetTopRequest, grpc.ServerStreamingServer[GetTopResponse]) error
-	mustEmbedUnimplementedLeaderboardServiceServer()
+	mustEmbedUnimplementedScoreboardServiceServer()
 }
 
-// UnimplementedLeaderboardServiceServer must be embedded to have
+// UnimplementedScoreboardServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedLeaderboardServiceServer struct{}
+type UnimplementedScoreboardServiceServer struct{}
 
-func (UnimplementedLeaderboardServiceServer) GetTop(context.Context, *GetTopRequest) (*GetTopResponse, error) {
+func (UnimplementedScoreboardServiceServer) GetTop(context.Context, *GetTopRequest) (*GetTopResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTop not implemented")
 }
-func (UnimplementedLeaderboardServiceServer) GetPlayer(context.Context, *GetPlayerRequest) (*GetPlayerResponse, error) {
+func (UnimplementedScoreboardServiceServer) GetPlayer(context.Context, *GetPlayerRequest) (*GetPlayerResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPlayer not implemented")
 }
-func (UnimplementedLeaderboardServiceServer) StreamTop(*GetTopRequest, grpc.ServerStreamingServer[GetTopResponse]) error {
+func (UnimplementedScoreboardServiceServer) StreamTop(*GetTopRequest, grpc.ServerStreamingServer[GetTopResponse]) error {
 	return status.Error(codes.Unimplemented, "method StreamTop not implemented")
 }
-func (UnimplementedLeaderboardServiceServer) mustEmbedUnimplementedLeaderboardServiceServer() {}
-func (UnimplementedLeaderboardServiceServer) testEmbeddedByValue()                            {}
+func (UnimplementedScoreboardServiceServer) mustEmbedUnimplementedScoreboardServiceServer() {}
+func (UnimplementedScoreboardServiceServer) testEmbeddedByValue()                           {}
 
-// UnsafeLeaderboardServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to LeaderboardServiceServer will
+// UnsafeScoreboardServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ScoreboardServiceServer will
 // result in compilation errors.
-type UnsafeLeaderboardServiceServer interface {
-	mustEmbedUnimplementedLeaderboardServiceServer()
+type UnsafeScoreboardServiceServer interface {
+	mustEmbedUnimplementedScoreboardServiceServer()
 }
 
-func RegisterLeaderboardServiceServer(s grpc.ServiceRegistrar, srv LeaderboardServiceServer) {
-	// If the following call panics, it indicates UnimplementedLeaderboardServiceServer was
+func RegisterScoreboardServiceServer(s grpc.ServiceRegistrar, srv ScoreboardServiceServer) {
+	// If the following call panics, it indicates UnimplementedScoreboardServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&LeaderboardService_ServiceDesc, srv)
+	s.RegisterService(&ScoreboardService_ServiceDesc, srv)
 }
 
-func _LeaderboardService_GetTop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ScoreboardService_GetTop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetTopRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LeaderboardServiceServer).GetTop(ctx, in)
+		return srv.(ScoreboardServiceServer).GetTop(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: LeaderboardService_GetTop_FullMethodName,
+		FullMethod: ScoreboardService_GetTop_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LeaderboardServiceServer).GetTop(ctx, req.(*GetTopRequest))
+		return srv.(ScoreboardServiceServer).GetTop(ctx, req.(*GetTopRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _LeaderboardService_GetPlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ScoreboardService_GetPlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPlayerRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LeaderboardServiceServer).GetPlayer(ctx, in)
+		return srv.(ScoreboardServiceServer).GetPlayer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: LeaderboardService_GetPlayer_FullMethodName,
+		FullMethod: ScoreboardService_GetPlayer_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LeaderboardServiceServer).GetPlayer(ctx, req.(*GetPlayerRequest))
+		return srv.(ScoreboardServiceServer).GetPlayer(ctx, req.(*GetPlayerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _LeaderboardService_StreamTop_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _ScoreboardService_StreamTop_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GetTopRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(LeaderboardServiceServer).StreamTop(m, &grpc.GenericServerStream[GetTopRequest, GetTopResponse]{ServerStream: stream})
+	return srv.(ScoreboardServiceServer).StreamTop(m, &grpc.GenericServerStream[GetTopRequest, GetTopResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type LeaderboardService_StreamTopServer = grpc.ServerStreamingServer[GetTopResponse]
+type ScoreboardService_StreamTopServer = grpc.ServerStreamingServer[GetTopResponse]
 
-// LeaderboardService_ServiceDesc is the grpc.ServiceDesc for LeaderboardService service.
+// ScoreboardService_ServiceDesc is the grpc.ServiceDesc for ScoreboardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var LeaderboardService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "leaderboard.v1.LeaderboardService",
-	HandlerType: (*LeaderboardServiceServer)(nil),
+var ScoreboardService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "leaderboard.v1.ScoreboardService",
+	HandlerType: (*ScoreboardServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetTop",
-			Handler:    _LeaderboardService_GetTop_Handler,
+			Handler:    _ScoreboardService_GetTop_Handler,
 		},
 		{
 			MethodName: "GetPlayer",
-			Handler:    _LeaderboardService_GetPlayer_Handler,
+			Handler:    _ScoreboardService_GetPlayer_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "StreamTop",
-			Handler:       _LeaderboardService_StreamTop_Handler,
+			Handler:       _ScoreboardService_StreamTop_Handler,
 			ServerStreams: true,
 		},
 	},
