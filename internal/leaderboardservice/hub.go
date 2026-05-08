@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Hub subscribes to the leaderboard:updates Redis pub/sub channel and
+// Hub subscribes to the scores:updated Redis pub/sub channel and
 // fans out a fresh leaderboard snapshot to all registered StreamTop clients on
 // each notification. One Redis read serves every connected client, regardless
 // of how many streams are active.
@@ -49,7 +49,7 @@ func (h *Hub) Subscribe(ctx context.Context) <-chan []*pb.Player {
 	return ch
 }
 
-// Run subscribes to leaderboard:updates and fans out snapshots until ctx is
+// Run subscribes to scores:updated and fans out snapshots until ctx is
 // cancelled. Call this once in a goroutine when the server starts.
 func (h *Hub) Run(ctx context.Context) {
 	pubsub := h.rdb.Subscribe(ctx, rediskeys.ScoresUpdated)
@@ -70,7 +70,7 @@ func (h *Hub) Run(ctx context.Context) {
 				Rev:   true,
 			}).Result()
 			if err != nil {
-				slog.Error("hub: failed to fetch scoreboard", "error", err)
+				slog.Error("hub: failed to fetch top scores", "error", err)
 				continue
 			}
 

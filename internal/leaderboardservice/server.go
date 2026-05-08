@@ -112,7 +112,7 @@ func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_S
 		Rev:   true,
 	}).Result()
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to fetch initial leaderboard: %v", err)
+		return status.Errorf(codes.Internal, "failed to fetch initial top scores: %v", err)
 	}
 	players := make([]*pb.Player, len(topScores))
 	for i, score := range topScores {
