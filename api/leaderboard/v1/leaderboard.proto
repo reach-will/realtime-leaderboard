@@ -31,10 +31,10 @@ message GetPlayerResponse {
   Player player = 1;
 }
 
-// ScoreboardService exposes read-only access to the live scoreboard.
+// LeaderboardService exposes read-only access to the live leaderboard.
 // Score updates are ingested asynchronously via Kafka.
 // This API reflects the current state of the Redis sorted set.
-service ScoreboardService {
+service LeaderboardService {
   // GetTop returns the top N players by score, highest first.
   rpc GetTop(GetTopRequest) returns (GetTopResponse);
 

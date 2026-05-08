@@ -278,8 +278,8 @@ const file_leaderboard_v1_leaderboard_proto_rawDesc = "" +
 	"\x10GetPlayerRequest\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\"C\n" +
 	"\x11GetPlayerResponse\x12.\n" +
-	"\x06player\x18\x01 \x01(\v2\x16.leaderboard.v1.PlayerR\x06player2\xfc\x01\n" +
-	"\x11ScoreboardService\x12G\n" +
+	"\x06player\x18\x01 \x01(\v2\x16.leaderboard.v1.PlayerR\x06player2\xfd\x01\n" +
+	"\x12LeaderboardService\x12G\n" +
 	"\x06GetTop\x12\x1d.leaderboard.v1.GetTopRequest\x1a\x1e.leaderboard.v1.GetTopResponse\x12P\n" +
 	"\tGetPlayer\x12 .leaderboard.v1.GetPlayerRequest\x1a!.leaderboard.v1.GetPlayerResponse\x12L\n" +
 	"\tStreamTop\x12\x1d.leaderboard.v1.GetTopRequest\x1a\x1e.leaderboard.v1.GetTopResponse0\x01B?Z=github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1b\x06proto3"
@@ -307,12 +307,12 @@ var file_leaderboard_v1_leaderboard_proto_goTypes = []any{
 var file_leaderboard_v1_leaderboard_proto_depIdxs = []int32{
 	0, // 0: leaderboard.v1.GetTopResponse.players:type_name -> leaderboard.v1.Player
 	0, // 1: leaderboard.v1.GetPlayerResponse.player:type_name -> leaderboard.v1.Player
-	1, // 2: leaderboard.v1.ScoreboardService.GetTop:input_type -> leaderboard.v1.GetTopRequest
-	3, // 3: leaderboard.v1.ScoreboardService.GetPlayer:input_type -> leaderboard.v1.GetPlayerRequest
-	1, // 4: leaderboard.v1.ScoreboardService.StreamTop:input_type -> leaderboard.v1.GetTopRequest
-	2, // 5: leaderboard.v1.ScoreboardService.GetTop:output_type -> leaderboard.v1.GetTopResponse
-	4, // 6: leaderboard.v1.ScoreboardService.GetPlayer:output_type -> leaderboard.v1.GetPlayerResponse
-	2, // 7: leaderboard.v1.ScoreboardService.StreamTop:output_type -> leaderboard.v1.GetTopResponse
+	1, // 2: leaderboard.v1.LeaderboardService.GetTop:input_type -> leaderboard.v1.GetTopRequest
+	3, // 3: leaderboard.v1.LeaderboardService.GetPlayer:input_type -> leaderboard.v1.GetPlayerRequest
+	1, // 4: leaderboard.v1.LeaderboardService.StreamTop:input_type -> leaderboard.v1.GetTopRequest
+	2, // 5: leaderboard.v1.LeaderboardService.GetTop:output_type -> leaderboard.v1.GetTopResponse
+	4, // 6: leaderboard.v1.LeaderboardService.GetPlayer:output_type -> leaderboard.v1.GetPlayerResponse
+	2, // 7: leaderboard.v1.LeaderboardService.StreamTop:output_type -> leaderboard.v1.GetTopResponse
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

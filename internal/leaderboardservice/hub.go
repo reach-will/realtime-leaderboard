@@ -1,4 +1,4 @@
-package scoreboardservice
+package leaderboardservice
 
 import (
 	"context"

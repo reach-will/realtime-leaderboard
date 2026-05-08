@@ -1,4 +1,4 @@
-package scoreboardservice
+package leaderboardservice
 
 import (
 	"context"
@@ -16,7 +16,7 @@ const maxLimit = 1000
 
 // Server is the leaderboard gRPC service. Call Close when done.
 type Server struct {
-	pb.UnimplementedScoreboardServiceServer
+	pb.UnimplementedLeaderboardServiceServer
 	rdb *redis.Client
 	hub *Hub
 }
@@ -92,7 +92,7 @@ func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 	}, nil
 }
 
-func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.ScoreboardService_StreamTopServer) error {
+func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_StreamTopServer) error {
 	if req.Limit <= 0 {
 		return status.Error(codes.InvalidArgument, "limit must be greater than 0")
 	}
