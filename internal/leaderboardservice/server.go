@@ -53,27 +53,6 @@ func (s *Server) Start(ctx context.Context) {
 // Close releases the underlying Redis connection.
 func (s *Server) Close() { s.rdb.Close() }
 
-func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
-	if req.Limit <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "limit must be greater than 0")
-	}
-	if req.Limit > maxLimit {
-		return nil, status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
-	}
-
-	scores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
-		Key:   rediskeys.ScoresGlobal,
-		Start: 0,
-		Stop:  req.Limit - 1,
-		Rev:   true,
-	}).Result()
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to fetch top players: %v", err)
-	}
-
-	return &pb.GetTopResponse{Players: toPlayers(scores)}, nil
-}
-
 func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.GetPlayerResponse, error) {
 	if req.PlayerId == "" {
 		return nil, status.Error(codes.InvalidArgument, "player_id is required")
@@ -94,4 +73,25 @@ func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 			Rank:     int32(result.Rank + 1),
 		},
 	}, nil
+}
+
+func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopResponse, error) {
+	if req.Limit <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "limit must be greater than 0")
+	}
+	if req.Limit > maxLimit {
+		return nil, status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
+	}
+
+	scores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
+		Key:   rediskeys.ScoresGlobal,
+		Start: 0,
+		Stop:  req.Limit - 1,
+		Rev:   true,
+	}).Result()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch top players: %v", err)
+	}
+
+	return &pb.GetTopResponse{Players: toPlayers(scores)}, nil
 }
