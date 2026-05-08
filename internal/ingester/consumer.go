@@ -33,6 +33,10 @@ const (
 	// practice. 5 minutes is a conservative bound that keeps SET size manageable
 	// under high-throughput load.
 	processedMatchesTTL = 5 * 60 // seconds
+
+	// leaderboardSize is the number of players projected into the leaderboard:global read
+	// model on each flush. Drives the SSE top-10 stream.
+	leaderboardSize = 10
 )
 
 // matchUpdate holds the parsed outcome of a single match ready to be applied to Redis.
@@ -282,9 +286,16 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 		return
 	}
 
-	// Notify StreamTop subscribers that scores have changed. A missed publish
-	// is non-fatal — subscribers simply skip one update and receive the next.
-	err = c.rdb.Publish(ctx, rediskeys.ScoresUpdated, "").Err()
+	// Project the read model before notifying subscribers so the hub always reads
+	// a snapshot that already reflects the scores just written.
+	c.projectLeaderboard(ctx)
+	if ctx.Err() != nil {
+		return
+	}
+
+	// Notify SSE subscribers that the leaderboard projection is ready.
+	// A missed publish is non-fatal — subscribers simply skip one update and receive the next.
+	err = c.rdb.Publish(ctx, rediskeys.LeaderboardUpdated, "").Err()
 	if ctx.Err() != nil {
 		return
 	}
@@ -293,6 +304,22 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	}
 
 	slog.Info("batch flushed", "messages", len(updates))
+}
+
+// projectLeaderboard copies the top leaderboardSize players from the write model
+// (scores:global) into the read model (leaderboard:global) via a single atomic
+// ZRANGESTORE. Called after every successful flush and before publishing
+// scores:updated, so hub reads always see a consistent snapshot.
+func (c *Consumer) projectLeaderboard(ctx context.Context) {
+	err := c.rdb.ZRangeStore(ctx, rediskeys.LeaderboardGlobal, redis.ZRangeArgs{
+		Key:   rediskeys.ScoresGlobal,
+		Start: 0,
+		Stop:  leaderboardSize - 1,
+		Rev:   true,
+	}).Err()
+	if err != nil && ctx.Err() == nil {
+		slog.Warn("failed to project leaderboard read model", "error", err)
+	}
 }
 
 // sendBatchToRetryTopic routes a batch of transiently-failed messages for reprocessing.

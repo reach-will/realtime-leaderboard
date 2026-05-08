@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,6 +30,7 @@ func main() {
 	svc := leaderboardservice.New(cfg)
 	defer svc.Close()
 
+	// gRPC server
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
 		slog.Error("failed to listen", "error", err)
@@ -60,6 +63,16 @@ func main() {
 	registerReflection(grpcServer)
 	srvMetrics.InitializeMetrics(grpcServer)
 
+	// SSE HTTP server
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /leaderboard/stream", svc.ServeLeaderboard)
+
+	httpServer := &http.Server{
+		Addr:              cfg.SSEAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
 	go admin.Serve(cfg.AdminAddr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -68,11 +81,22 @@ func main() {
 	go svc.Start(ctx)
 
 	go func() {
+		slog.Info("SSE server listening", "addr", cfg.SSEAddr)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("SSE server error", "error", err)
+		}
+	}()
+
+	go func() {
 		<-ctx.Done()
 		slog.Info("API server shutting down")
 
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
 		stopped := make(chan struct{})
 		go func() {
+			httpServer.Shutdown(shutdownCtx) //nolint:errcheck
 			grpcServer.GracefulStop()
 			close(stopped)
 		}()
@@ -80,7 +104,7 @@ func main() {
 		select {
 		case <-stopped:
 			slog.Info("graceful shutdown complete")
-		case <-time.After(15 * time.Second):
+		case <-shutdownCtx.Done():
 			slog.Warn("graceful shutdown timed out, forcing stop")
 			grpcServer.Stop()
 		}
