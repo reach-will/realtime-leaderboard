@@ -29,14 +29,11 @@ const (
 //
 // LeaderboardService exposes read-only access to the live leaderboard.
 // Score updates are ingested asynchronously via Kafka.
-// GetTop and GetPlayer read directly from the write model (scores:global).
-// GetTop10 and StreamTop10 read from the pre-projected read model (leaderboard:global).
 type LeaderboardServiceClient interface {
 	// GetPlayer returns a single player's current score and rank.
 	// Returns NOT_FOUND if the player has not yet appeared in any match.
 	GetPlayer(ctx context.Context, in *GetPlayerRequest, opts ...grpc.CallOption) (*GetPlayerResponse, error)
 	// GetTop returns the top N players by score, highest first.
-	// Reads directly from the write model (scores:global); supports limits up to 1000.
 	GetTop(ctx context.Context, in *GetTopRequest, opts ...grpc.CallOption) (*GetTopResponse, error)
 }
 
@@ -74,14 +71,11 @@ func (c *leaderboardServiceClient) GetTop(ctx context.Context, in *GetTopRequest
 //
 // LeaderboardService exposes read-only access to the live leaderboard.
 // Score updates are ingested asynchronously via Kafka.
-// GetTop and GetPlayer read directly from the write model (scores:global).
-// GetTop10 and StreamTop10 read from the pre-projected read model (leaderboard:global).
 type LeaderboardServiceServer interface {
 	// GetPlayer returns a single player's current score and rank.
 	// Returns NOT_FOUND if the player has not yet appeared in any match.
 	GetPlayer(context.Context, *GetPlayerRequest) (*GetPlayerResponse, error)
 	// GetTop returns the top N players by score, highest first.
-	// Reads directly from the write model (scores:global); supports limits up to 1000.
 	GetTop(context.Context, *GetTopRequest) (*GetTopResponse, error)
 	mustEmbedUnimplementedLeaderboardServiceServer()
 }
