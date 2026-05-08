@@ -64,7 +64,7 @@ func (h *Hub) Run(ctx context.Context) {
 				return
 			}
 			scores, err := h.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
-				Key:   rediskeys.ScoreGlobal,
+				Key:   rediskeys.ScoresGlobal,
 				Start: 0,
 				Stop:  maxLimit - 1,
 				Rev:   true,

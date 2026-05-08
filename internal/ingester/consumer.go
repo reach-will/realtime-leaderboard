@@ -241,7 +241,7 @@ func (c *Consumer) flushBatch(ctx context.Context, updates []matchUpdate) {
 	_, err := c.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, upd := range updates {
 			cmds[i] = updateScoresScript.Eval(ctx, pipe,
-				[]string{rediskeys.ScoreGlobal, rediskeys.MatchesProcessed},
+				[]string{rediskeys.ScoresGlobal, rediskeys.MatchesProcessed},
 				upd.deltaA, upd.playerA, upd.deltaB, upd.playerB, upd.matchID, processedMatchesTTL)
 		}
 		return nil

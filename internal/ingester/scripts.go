@@ -10,7 +10,7 @@ import "github.com/redis/go-redis/v9"
 // guarantees that a match replayed after a consumer crash (Kafka at-least-once delivery)
 // is a safe no-op rather than a double-count.
 //
-// KEYS[1]  — sorted set key (e.g. score:global)
+// KEYS[1]  — sorted set key (e.g. scores:global)
 // KEYS[2]  — processed match IDs set key (e.g. ingester:processed_matches)
 // ARGV[1]  — player A delta (float, as string)
 // ARGV[2]  — player A ID

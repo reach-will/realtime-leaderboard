@@ -1,7 +1,7 @@
 package rediskeys
 
 const (
-	ScoreGlobal      = "score:global"
+	ScoresGlobal     = "scores:global"
 	ScoresUpdated    = "scores:updated"
 	MatchesProcessed = "matches:processed"
 )

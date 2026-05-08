@@ -29,7 +29,7 @@ topic:
 		--replication-factor 1
 
 top10:
-	docker exec -it realtime-leaderboard-redis-1 redis-cli ZREVRANGE score:global 0 9 WITHSCORES
+	docker exec -it realtime-leaderboard-redis-1 redis-cli ZREVRANGE scores:global 0 9 WITHSCORES
 
 proto:
 	buf generate

@@ -50,7 +50,7 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 	}
 
 	topScores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
-		Key:   rediskeys.ScoreGlobal,
+		Key:   rediskeys.ScoresGlobal,
 		Start: 0,
 		Stop:  req.Limit - 1,
 		Rev:   true,
@@ -75,7 +75,7 @@ func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 		return nil, status.Error(codes.InvalidArgument, "player_id is required")
 	}
 
-	result, err := s.rdb.ZRevRankWithScore(ctx, rediskeys.ScoreGlobal, req.PlayerId).Result()
+	result, err := s.rdb.ZRevRankWithScore(ctx, rediskeys.ScoresGlobal, req.PlayerId).Result()
 	if errors.Is(err, redis.Nil) {
 		return nil, status.Errorf(codes.NotFound, "player %q not found", req.PlayerId)
 	}
@@ -106,7 +106,7 @@ func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.ScoreboardService_St
 
 	// Send an immediate snapshot so the client doesn't wait for the next ingester flush.
 	topScores, err := s.rdb.ZRangeArgsWithScores(stream.Context(), redis.ZRangeArgs{
-		Key:   rediskeys.ScoreGlobal,
+		Key:   rediskeys.ScoresGlobal,
 		Start: 0,
 		Stop:  req.Limit - 1,
 		Rev:   true,
