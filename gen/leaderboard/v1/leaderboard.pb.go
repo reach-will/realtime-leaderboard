@@ -82,96 +82,6 @@ func (x *Player) GetRank() int32 {
 	return 0
 }
 
-// GetTopRequest specifies how many players to return.
-type GetTopRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTopRequest) Reset() {
-	*x = GetTopRequest{}
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTopRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTopRequest) ProtoMessage() {}
-
-func (x *GetTopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTopRequest.ProtoReflect.Descriptor instead.
-func (*GetTopRequest) Descriptor() ([]byte, []int) {
-	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetTopRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-// GetTopResponse contains the top N players on the leaderboard.
-type GetTopResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Players       []*Player              `protobuf:"bytes,1,rep,name=players,proto3" json:"players,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTopResponse) Reset() {
-	*x = GetTopResponse{}
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTopResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTopResponse) ProtoMessage() {}
-
-func (x *GetTopResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTopResponse.ProtoReflect.Descriptor instead.
-func (*GetTopResponse) Descriptor() ([]byte, []int) {
-	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *GetTopResponse) GetPlayers() []*Player {
-	if x != nil {
-		return x.Players
-	}
-	return nil
-}
-
 // GetPlayerRequest identifies the player to look up.
 type GetPlayerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -182,7 +92,7 @@ type GetPlayerRequest struct {
 
 func (x *GetPlayerRequest) Reset() {
 	*x = GetPlayerRequest{}
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[3]
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -194,7 +104,7 @@ func (x *GetPlayerRequest) String() string {
 func (*GetPlayerRequest) ProtoMessage() {}
 
 func (x *GetPlayerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[3]
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -207,7 +117,7 @@ func (x *GetPlayerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlayerRequest.ProtoReflect.Descriptor instead.
 func (*GetPlayerRequest) Descriptor() ([]byte, []int) {
-	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{3}
+	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetPlayerRequest) GetPlayerId() string {
@@ -227,7 +137,7 @@ type GetPlayerResponse struct {
 
 func (x *GetPlayerResponse) Reset() {
 	*x = GetPlayerResponse{}
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[4]
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -239,7 +149,7 @@ func (x *GetPlayerResponse) String() string {
 func (*GetPlayerResponse) ProtoMessage() {}
 
 func (x *GetPlayerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[4]
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -252,12 +162,102 @@ func (x *GetPlayerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPlayerResponse.ProtoReflect.Descriptor instead.
 func (*GetPlayerResponse) Descriptor() ([]byte, []int) {
-	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{4}
+	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetPlayerResponse) GetPlayer() *Player {
 	if x != nil {
 		return x.Player
+	}
+	return nil
+}
+
+// GetTopRequest specifies how many players to return.
+type GetTopRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTopRequest) Reset() {
+	*x = GetTopRequest{}
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTopRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTopRequest) ProtoMessage() {}
+
+func (x *GetTopRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTopRequest.ProtoReflect.Descriptor instead.
+func (*GetTopRequest) Descriptor() ([]byte, []int) {
+	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetTopRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// GetTopResponse contains the top N players on the leaderboard.
+type GetTopResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Players       []*Player              `protobuf:"bytes,1,rep,name=players,proto3" json:"players,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTopResponse) Reset() {
+	*x = GetTopResponse{}
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTopResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTopResponse) ProtoMessage() {}
+
+func (x *GetTopResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_leaderboard_v1_leaderboard_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTopResponse.ProtoReflect.Descriptor instead.
+func (*GetTopResponse) Descriptor() ([]byte, []int) {
+	return file_leaderboard_v1_leaderboard_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetTopResponse) GetPlayers() []*Player {
+	if x != nil {
+		return x.Players
 	}
 	return nil
 }
@@ -270,19 +270,18 @@ const file_leaderboard_v1_leaderboard_proto_rawDesc = "" +
 	"\x06Player\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\x12\x14\n" +
 	"\x05score\x18\x02 \x01(\x01R\x05score\x12\x12\n" +
-	"\x04rank\x18\x03 \x01(\x05R\x04rank\"%\n" +
-	"\rGetTopRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"B\n" +
-	"\x0eGetTopResponse\x120\n" +
-	"\aplayers\x18\x01 \x03(\v2\x16.leaderboard.v1.PlayerR\aplayers\"/\n" +
+	"\x04rank\x18\x03 \x01(\x05R\x04rank\"/\n" +
 	"\x10GetPlayerRequest\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\tR\bplayerId\"C\n" +
 	"\x11GetPlayerResponse\x12.\n" +
-	"\x06player\x18\x01 \x01(\v2\x16.leaderboard.v1.PlayerR\x06player2\xfd\x01\n" +
-	"\x12LeaderboardService\x12G\n" +
-	"\x06GetTop\x12\x1d.leaderboard.v1.GetTopRequest\x1a\x1e.leaderboard.v1.GetTopResponse\x12P\n" +
-	"\tGetPlayer\x12 .leaderboard.v1.GetPlayerRequest\x1a!.leaderboard.v1.GetPlayerResponse\x12L\n" +
-	"\tStreamTop\x12\x1d.leaderboard.v1.GetTopRequest\x1a\x1e.leaderboard.v1.GetTopResponse0\x01B?Z=github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1b\x06proto3"
+	"\x06player\x18\x01 \x01(\v2\x16.leaderboard.v1.PlayerR\x06player\"%\n" +
+	"\rGetTopRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"B\n" +
+	"\x0eGetTopResponse\x120\n" +
+	"\aplayers\x18\x01 \x03(\v2\x16.leaderboard.v1.PlayerR\aplayers2\xaf\x01\n" +
+	"\x12LeaderboardService\x12P\n" +
+	"\tGetPlayer\x12 .leaderboard.v1.GetPlayerRequest\x1a!.leaderboard.v1.GetPlayerResponse\x12G\n" +
+	"\x06GetTop\x12\x1d.leaderboard.v1.GetTopRequest\x1a\x1e.leaderboard.v1.GetTopResponseB?Z=github.com/reach-will/realtime-leaderboard/gen/leaderboard/v1b\x06proto3"
 
 var (
 	file_leaderboard_v1_leaderboard_proto_rawDescOnce sync.Once
@@ -299,22 +298,20 @@ func file_leaderboard_v1_leaderboard_proto_rawDescGZIP() []byte {
 var file_leaderboard_v1_leaderboard_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_leaderboard_v1_leaderboard_proto_goTypes = []any{
 	(*Player)(nil),            // 0: leaderboard.v1.Player
-	(*GetTopRequest)(nil),     // 1: leaderboard.v1.GetTopRequest
-	(*GetTopResponse)(nil),    // 2: leaderboard.v1.GetTopResponse
-	(*GetPlayerRequest)(nil),  // 3: leaderboard.v1.GetPlayerRequest
-	(*GetPlayerResponse)(nil), // 4: leaderboard.v1.GetPlayerResponse
+	(*GetPlayerRequest)(nil),  // 1: leaderboard.v1.GetPlayerRequest
+	(*GetPlayerResponse)(nil), // 2: leaderboard.v1.GetPlayerResponse
+	(*GetTopRequest)(nil),     // 3: leaderboard.v1.GetTopRequest
+	(*GetTopResponse)(nil),    // 4: leaderboard.v1.GetTopResponse
 }
 var file_leaderboard_v1_leaderboard_proto_depIdxs = []int32{
-	0, // 0: leaderboard.v1.GetTopResponse.players:type_name -> leaderboard.v1.Player
-	0, // 1: leaderboard.v1.GetPlayerResponse.player:type_name -> leaderboard.v1.Player
-	1, // 2: leaderboard.v1.LeaderboardService.GetTop:input_type -> leaderboard.v1.GetTopRequest
-	3, // 3: leaderboard.v1.LeaderboardService.GetPlayer:input_type -> leaderboard.v1.GetPlayerRequest
-	1, // 4: leaderboard.v1.LeaderboardService.StreamTop:input_type -> leaderboard.v1.GetTopRequest
-	2, // 5: leaderboard.v1.LeaderboardService.GetTop:output_type -> leaderboard.v1.GetTopResponse
-	4, // 6: leaderboard.v1.LeaderboardService.GetPlayer:output_type -> leaderboard.v1.GetPlayerResponse
-	2, // 7: leaderboard.v1.LeaderboardService.StreamTop:output_type -> leaderboard.v1.GetTopResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	0, // 0: leaderboard.v1.GetPlayerResponse.player:type_name -> leaderboard.v1.Player
+	0, // 1: leaderboard.v1.GetTopResponse.players:type_name -> leaderboard.v1.Player
+	1, // 2: leaderboard.v1.LeaderboardService.GetPlayer:input_type -> leaderboard.v1.GetPlayerRequest
+	3, // 3: leaderboard.v1.LeaderboardService.GetTop:input_type -> leaderboard.v1.GetTopRequest
+	2, // 4: leaderboard.v1.LeaderboardService.GetPlayer:output_type -> leaderboard.v1.GetPlayerResponse
+	4, // 5: leaderboard.v1.LeaderboardService.GetTop:output_type -> leaderboard.v1.GetTopResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name

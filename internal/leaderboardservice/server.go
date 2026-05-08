@@ -14,6 +14,18 @@ import (
 
 const maxLimit = 1000
 
+func toPlayers(scores []redis.Z) []*pb.Player {
+	players := make([]*pb.Player, len(scores))
+	for i, z := range scores {
+		players[i] = &pb.Player{
+			PlayerId: z.Member.(string),
+			Score:    z.Score,
+			Rank:     int32(i + 1),
+		}
+	}
+	return players
+}
+
 // Server is the leaderboard gRPC service. Call Close when done.
 type Server struct {
 	pb.UnimplementedLeaderboardServiceServer
@@ -49,7 +61,7 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 		return nil, status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
 	}
 
-	topScores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
+	scores, err := s.rdb.ZRangeArgsWithScores(ctx, redis.ZRangeArgs{
 		Key:   rediskeys.ScoresGlobal,
 		Start: 0,
 		Stop:  req.Limit - 1,
@@ -59,15 +71,7 @@ func (s *Server) GetTop(ctx context.Context, req *pb.GetTopRequest) (*pb.GetTopR
 		return nil, status.Errorf(codes.Internal, "failed to fetch top players: %v", err)
 	}
 
-	players := make([]*pb.Player, len(topScores))
-	for i, score := range topScores {
-		players[i] = &pb.Player{
-			PlayerId: score.Member.(string),
-			Score:    score.Score,
-			Rank:     int32(i + 1),
-		}
-	}
-	return &pb.GetTopResponse{Players: players}, nil
+	return &pb.GetTopResponse{Players: toPlayers(scores)}, nil
 }
 
 func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.GetPlayerResponse, error) {
@@ -90,53 +94,4 @@ func (s *Server) GetPlayer(ctx context.Context, req *pb.GetPlayerRequest) (*pb.G
 			Rank:     int32(result.Rank + 1),
 		},
 	}, nil
-}
-
-func (s *Server) StreamTop(req *pb.GetTopRequest, stream pb.LeaderboardService_StreamTopServer) error {
-	if req.Limit <= 0 {
-		return status.Error(codes.InvalidArgument, "limit must be greater than 0")
-	}
-	if req.Limit > maxLimit {
-		return status.Errorf(codes.InvalidArgument, "limit must be at most %d", maxLimit)
-	}
-
-	// Subscribe before the initial fetch so we don't miss an update that arrives
-	// between the fetch and the loop below.
-	ch := s.hub.Subscribe(stream.Context())
-
-	// Send an immediate snapshot so the client doesn't wait for the next ingester flush.
-	topScores, err := s.rdb.ZRangeArgsWithScores(stream.Context(), redis.ZRangeArgs{
-		Key:   rediskeys.ScoresGlobal,
-		Start: 0,
-		Stop:  req.Limit - 1,
-		Rev:   true,
-	}).Result()
-	if err != nil {
-		return status.Errorf(codes.Internal, "failed to fetch initial top scores: %v", err)
-	}
-	players := make([]*pb.Player, len(topScores))
-	for i, score := range topScores {
-		players[i] = &pb.Player{
-			PlayerId: score.Member.(string),
-			Score:    score.Score,
-			Rank:     int32(i + 1),
-		}
-	}
-	if err := stream.Send(&pb.GetTopResponse{Players: players}); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case <-stream.Context().Done():
-			return nil
-		case players := <-ch:
-			if int32(len(players)) > req.Limit {
-				players = players[:req.Limit]
-			}
-			if err := stream.Send(&pb.GetTopResponse{Players: players}); err != nil {
-				return err
-			}
-		}
-	}
 }
