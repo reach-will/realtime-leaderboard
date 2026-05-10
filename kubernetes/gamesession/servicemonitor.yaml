@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gamesession-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: gamesession
+  namespaceSelector:
+    matchNames:
+      - default
+  endpoints:
+    - port: admin
+      path: /metrics

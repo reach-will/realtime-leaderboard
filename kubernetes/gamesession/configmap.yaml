@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gamesession-config
+  namespace: default
+data:
+  KAFKA_ADDR: "kafka:9092"
+  MATCHMAKING_MATCH_FOUND_KAFKA_TOPIC: "matchmaking.match.found"
+  GAMESESSION_MATCH_COMPLETED_KAFKA_TOPIC: "gamesession.match.completed"
+  GAMESESSION_GROUP_ID: "gamesession.consumer"
+  ADMIN_ADDR: ":2114"

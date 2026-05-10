@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gamesession-service
+  namespace: default
+spec:
+  selector:
+    app: gamesession
+  ports:
+    - name: admin
+      port: 2114
+      targetPort: admin

@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: gamesession-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: gamesession-deployment
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka:9092
+        consumerGroup: gamesession.consumer
+        topic: matchmaking.match.found
+        lagThreshold: "10"

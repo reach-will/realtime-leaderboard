@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gamesession-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gamesession
+  template:
+    metadata:
+      labels:
+        app: gamesession
+    spec:
+      initContainers:
+        - name: wait-for-topic
+          image: apache/kafka:3.9.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until /opt/kafka/bin/kafka-topics.sh --describe \
+                --topic matchmaking.match.found \
+                --bootstrap-server kafka:9092; do
+                echo "Waiting for topic..."; sleep 3
+              done
+      containers:
+        - name: gamesession
+          image: ghcr.io/reach-will/realtime-leaderboard/gamesession:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: gamesession-config
+          ports:
+            - name: admin
+              containerPort: 2114
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
