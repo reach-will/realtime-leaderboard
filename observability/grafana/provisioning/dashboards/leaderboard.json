@@ -30,7 +30,7 @@
       },
       "id": 1,
       "panels": [],
-      "title": "Ingester",
+      "title": "Rating",
       "type": "row"
     },
     {
@@ -123,7 +123,7 @@
             "uid": "prometheus"
           },
           "editorMode": "builder",
-          "expr": "rate(leaderboard_ingester_messages_processed_total[1m])",
+          "expr": "rate(leaderboard_rating_messages_processed_total[1m])",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -222,7 +222,7 @@
             "uid": "prometheus"
           },
           "editorMode": "builder",
-          "expr": "rate(leaderboard_ingester_processing_errors_total[1m])",
+          "expr": "rate(leaderboard_rating_processing_errors_total[1m])",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -321,7 +321,7 @@
             "uid": "prometheus"
           },
           "editorMode": "builder",
-          "expr": "rate(leaderboard_ingester_redis_updates_total[1m])",
+          "expr": "rate(leaderboard_rating_redis_updates_total[1m])",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -420,7 +420,7 @@
             "uid": "prometheus"
           },
           "editorMode": "builder",
-          "expr": "rate(leaderboard_ingester_redis_errors_total[1m])",
+          "expr": "rate(leaderboard_rating_redis_errors_total[1m])",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -519,7 +519,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, rate(leaderboard_ingester_processing_duration_seconds_bucket[1m]))",
+          "expr": "histogram_quantile(0.99, rate(leaderboard_rating_processing_duration_seconds_bucket[1m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -618,7 +618,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, rate(leaderboard_ingester_redis_update_duration_seconds_bucket[1m]))",
+          "expr": "histogram_quantile(0.99, rate(leaderboard_rating_redis_update_duration_seconds_bucket[1m]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"

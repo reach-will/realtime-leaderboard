@@ -1,4 +1,4 @@
-package ingester
+package rating
 
 import "github.com/redis/go-redis/v9"
 
@@ -11,7 +11,7 @@ import "github.com/redis/go-redis/v9"
 // is a safe no-op rather than a double-count.
 //
 // KEYS[1]  — sorted set key (e.g. scores:global)
-// KEYS[2]  — processed match IDs set key (e.g. ingester:processed_matches)
+// KEYS[2]  — processed match IDs set key (e.g. matches:processed)
 // ARGV[1]  — player A delta (float, as string)
 // ARGV[2]  — player A ID
 // ARGV[3]  — player B delta (float, as string)

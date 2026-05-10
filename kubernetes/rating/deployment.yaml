@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: leaderboard-ingester-deployment
+  name: rating-deployment
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: leaderboard-ingester
+      app: rating
   template:
     metadata:
       labels:
-        app: leaderboard-ingester
+        app: rating
     spec:
       initContainers:
         - name: wait-for-topic
@@ -21,17 +21,17 @@ spec:
             - -c
             - |
               until /opt/kafka/bin/kafka-topics.sh --describe \
-                --topic leaderboard.match.completed \
+                --topic gamesession.match.completed \
                 --bootstrap-server kafka:9092; do
                 echo "Waiting for topic..."; sleep 3
               done
       containers:
-        - name: leaderboard-ingester
-          image: ghcr.io/reach-will/realtime-leaderboard/ingester:latest
+        - name: leaderboard-rating
+          image: ghcr.io/reach-will/realtime-leaderboard/rating:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
-                name: leaderboard-ingester-config
+                name: leaderboard-rating-config
           ports:
             - name: admin
               containerPort: 2112

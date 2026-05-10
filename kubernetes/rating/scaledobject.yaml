@@ -1,11 +1,11 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: leaderboard-ingester-scaler
+  name: rating-scaler
   namespace: default
 spec:
   scaleTargetRef:
-    name: leaderboard-ingester-deployment
+    name: rating-deployment
   minReplicaCount: 0
   maxReplicaCount: 10
   cooldownPeriod: 30
@@ -13,6 +13,6 @@ spec:
     - type: kafka
       metadata:
         bootstrapServers: kafka.default.svc.cluster.local:9092
-        topic: leaderboard.match.completed
-        consumerGroup: leaderboard.ingester
+        topic: gamesession.match.completed
+        consumerGroup: rating.consumer
         lagThreshold: "10"

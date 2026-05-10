@@ -1,4 +1,4 @@
-package simulator
+package matchoutcomesimulator
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
+	gamesessionpb "github.com/reach-will/realtime-leaderboard/gen/gamesession/v1"
 	kafka "github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
 )
@@ -44,24 +44,24 @@ func New(cfg Config) *Producer {
 }
 
 // randomMatch generates a single random match outcome from the player pool.
-func (p *Producer) randomMatch() *eventspb.MatchOutcome {
+func (p *Producer) randomMatch() *gamesessionpb.MatchOutcome {
 	idx1 := rand.IntN(playerCount)
 	idx2 := rand.IntN(playerCount - 1)
 	if idx2 >= idx1 {
 		idx2++
 	}
 
-	var outcome eventspb.Outcome
+	var outcome gamesessionpb.Outcome
 	switch rand.IntN(11) {
 	case 0:
-		outcome = eventspb.Outcome_OUTCOME_DRAW
+		outcome = gamesessionpb.Outcome_OUTCOME_DRAW
 	case 1, 2, 3, 4, 5:
-		outcome = eventspb.Outcome_OUTCOME_PLAYER_B_WINS
+		outcome = gamesessionpb.Outcome_OUTCOME_PLAYER_B_WINS
 	default:
-		outcome = eventspb.Outcome_OUTCOME_PLAYER_A_WINS
+		outcome = gamesessionpb.Outcome_OUTCOME_PLAYER_A_WINS
 	}
 
-	return &eventspb.MatchOutcome{
+	return &gamesessionpb.MatchOutcome{
 		MatchId:     uuid.New().String(),
 		PlayerA:     p.players[idx1],
 		PlayerB:     p.players[idx2],
@@ -72,7 +72,7 @@ func (p *Producer) randomMatch() *eventspb.MatchOutcome {
 
 // Run produces match outcome events until ctx is cancelled.
 func (p *Producer) Run(ctx context.Context) {
-	slog.Info("simulator started")
+	slog.Info("match outcome simulator started")
 
 	for {
 		event := p.randomMatch()
@@ -100,7 +100,7 @@ func (p *Producer) Run(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			slog.Info("simulator shutting down")
+			slog.Info("match outcome simulator shutting down")
 			return
 		case <-time.After(time.Second):
 		}

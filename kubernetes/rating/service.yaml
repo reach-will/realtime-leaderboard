@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: leaderboard-ingester-service
+  name: rating-service
   namespace: default
   labels:
-    app: leaderboard-ingester
+    app: rating
 spec:
   selector:
-    app: leaderboard-ingester
+    app: rating
   type: ClusterIP
   ports:
   - port: 2112

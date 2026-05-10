@@ -12,7 +12,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        service: [api, ingester]
+        service: [api, gamesession, rating]
     steps:
       - uses: actions/checkout@v4
 

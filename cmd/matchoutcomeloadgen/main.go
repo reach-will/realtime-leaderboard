@@ -7,24 +7,21 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/reach-will/realtime-leaderboard/internal/admin"
-	"github.com/reach-will/realtime-leaderboard/internal/ingester"
+	"github.com/reach-will/realtime-leaderboard/internal/matchoutcomeloadgen"
 )
 
 func main() {
-	cfg, err := ingester.Load()
+	cfg, err := matchoutcomeloadgen.Load()
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
 
-	consumer := ingester.New(cfg)
-	defer consumer.Close()
+	p := matchoutcomeloadgen.New(cfg)
+	defer p.Close()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	go admin.Serve(cfg.AdminAddr)
-
-	consumer.Run(ctx)
+	p.Run(ctx)
 }

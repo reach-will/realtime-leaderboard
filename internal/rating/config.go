@@ -1,4 +1,4 @@
-package ingester
+package rating
 
 import (
 	"fmt"
@@ -22,21 +22,21 @@ type Config struct {
 func Load() (Config, error) {
 	c := Config{
 		KafkaAddr:    os.Getenv("KAFKA_ADDR"),
-		KafkaTopic:   os.Getenv("KAFKA_TOPIC"),
-		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
+		KafkaTopic:   os.Getenv("GAMESESSION_MATCH_COMPLETED_KAFKA_TOPIC"),
+		KafkaGroupID: os.Getenv("RATING_KAFKA_GROUP_ID"),
 		RedisAddr:    os.Getenv("REDIS_ADDR"),
 		AdminAddr:    config.Get("ADMIN_ADDR", ":2112"),
-		KafkaDLTopic: config.Get("KAFKA_DL_TOPIC", ""),
+		KafkaDLTopic: config.Get("RATING_KAFKA_DL_TOPIC", ""),
 	}
 	var missing []string
 	if c.KafkaAddr == "" {
 		missing = append(missing, "KAFKA_ADDR")
 	}
 	if c.KafkaTopic == "" {
-		missing = append(missing, "KAFKA_TOPIC")
+		missing = append(missing, "GAMESESSION_MATCH_COMPLETED_KAFKA_TOPIC")
 	}
 	if c.KafkaGroupID == "" {
-		missing = append(missing, "KAFKA_GROUP_ID")
+		missing = append(missing, "RATING_KAFKA_GROUP_ID")
 	}
 	if c.RedisAddr == "" {
 		missing = append(missing, "REDIS_ADDR")

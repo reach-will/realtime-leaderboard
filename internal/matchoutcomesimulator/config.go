@@ -1,4 +1,4 @@
-package simulator
+package matchoutcomesimulator
 
 import (
 	"fmt"
@@ -6,13 +6,11 @@ import (
 	"strings"
 )
 
-// Config holds all configuration for the simulator binary.
 type Config struct {
 	KafkaAddr  string
 	KafkaTopic string
 }
 
-// Load reads configuration from environment variables with fail-fast validation.
 func Load() (Config, error) {
 	c := Config{
 		KafkaAddr:  os.Getenv("KAFKA_ADDR"),

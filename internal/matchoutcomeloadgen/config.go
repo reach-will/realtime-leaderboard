@@ -1,4 +1,4 @@
-package loadgen
+package matchoutcomeloadgen
 
 import (
 	"fmt"
@@ -12,7 +12,6 @@ const (
 	defaultWorkers = 10
 )
 
-// Config holds all configuration for the load-generator binary.
 type Config struct {
 	KafkaAddr  string
 	KafkaTopic string
@@ -23,7 +22,6 @@ type Config struct {
 	Workers int
 }
 
-// Load reads configuration from environment variables with fail-fast validation.
 func Load() (Config, error) {
 	c := Config{
 		KafkaAddr:  os.Getenv("KAFKA_ADDR"),

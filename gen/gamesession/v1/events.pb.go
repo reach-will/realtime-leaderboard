@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: events/v1/match_outcome.proto
+// source: gamesession/v1/events.proto
 
 package v1
 
@@ -57,11 +57,11 @@ func (x Outcome) String() string {
 }
 
 func (Outcome) Descriptor() protoreflect.EnumDescriptor {
-	return file_events_v1_match_outcome_proto_enumTypes[0].Descriptor()
+	return file_gamesession_v1_events_proto_enumTypes[0].Descriptor()
 }
 
 func (Outcome) Type() protoreflect.EnumType {
-	return &file_events_v1_match_outcome_proto_enumTypes[0]
+	return &file_gamesession_v1_events_proto_enumTypes[0]
 }
 
 func (x Outcome) Number() protoreflect.EnumNumber {
@@ -70,7 +70,7 @@ func (x Outcome) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Outcome.Descriptor instead.
 func (Outcome) EnumDescriptor() ([]byte, []int) {
-	return file_events_v1_match_outcome_proto_rawDescGZIP(), []int{0}
+	return file_gamesession_v1_events_proto_rawDescGZIP(), []int{0}
 }
 
 type MatchOutcome struct {
@@ -78,7 +78,7 @@ type MatchOutcome struct {
 	MatchId       string                 `protobuf:"bytes,1,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
 	PlayerA       string                 `protobuf:"bytes,2,opt,name=player_a,json=playerA,proto3" json:"player_a,omitempty"`
 	PlayerB       string                 `protobuf:"bytes,3,opt,name=player_b,json=playerB,proto3" json:"player_b,omitempty"`
-	Outcome       Outcome                `protobuf:"varint,4,opt,name=outcome,proto3,enum=events.v1.Outcome" json:"outcome,omitempty"`
+	Outcome       Outcome                `protobuf:"varint,4,opt,name=outcome,proto3,enum=gamesession.v1.Outcome" json:"outcome,omitempty"`
 	TimestampMs   int64                  `protobuf:"varint,5,opt,name=timestamp_ms,json=timestampMs,proto3" json:"timestamp_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -86,7 +86,7 @@ type MatchOutcome struct {
 
 func (x *MatchOutcome) Reset() {
 	*x = MatchOutcome{}
-	mi := &file_events_v1_match_outcome_proto_msgTypes[0]
+	mi := &file_gamesession_v1_events_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +98,7 @@ func (x *MatchOutcome) String() string {
 func (*MatchOutcome) ProtoMessage() {}
 
 func (x *MatchOutcome) ProtoReflect() protoreflect.Message {
-	mi := &file_events_v1_match_outcome_proto_msgTypes[0]
+	mi := &file_gamesession_v1_events_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +111,7 @@ func (x *MatchOutcome) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MatchOutcome.ProtoReflect.Descriptor instead.
 func (*MatchOutcome) Descriptor() ([]byte, []int) {
-	return file_events_v1_match_outcome_proto_rawDescGZIP(), []int{0}
+	return file_gamesession_v1_events_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *MatchOutcome) GetMatchId() string {
@@ -149,43 +149,43 @@ func (x *MatchOutcome) GetTimestampMs() int64 {
 	return 0
 }
 
-var File_events_v1_match_outcome_proto protoreflect.FileDescriptor
+var File_gamesession_v1_events_proto protoreflect.FileDescriptor
 
-const file_events_v1_match_outcome_proto_rawDesc = "" +
+const file_gamesession_v1_events_proto_rawDesc = "" +
 	"\n" +
-	"\x1devents/v1/match_outcome.proto\x12\tevents.v1\"\xb0\x01\n" +
+	"\x1bgamesession/v1/events.proto\x12\x0egamesession.v1\"\xb5\x01\n" +
 	"\fMatchOutcome\x12\x19\n" +
 	"\bmatch_id\x18\x01 \x01(\tR\amatchId\x12\x19\n" +
 	"\bplayer_a\x18\x02 \x01(\tR\aplayerA\x12\x19\n" +
-	"\bplayer_b\x18\x03 \x01(\tR\aplayerB\x12,\n" +
-	"\aoutcome\x18\x04 \x01(\x0e2\x12.events.v1.OutcomeR\aoutcome\x12!\n" +
+	"\bplayer_b\x18\x03 \x01(\tR\aplayerB\x121\n" +
+	"\aoutcome\x18\x04 \x01(\x0e2\x17.gamesession.v1.OutcomeR\aoutcome\x12!\n" +
 	"\ftimestamp_ms\x18\x05 \x01(\x03R\vtimestampMs*j\n" +
 	"\aOutcome\x12\x17\n" +
 	"\x13OUTCOME_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15OUTCOME_PLAYER_A_WINS\x10\x01\x12\x19\n" +
 	"\x15OUTCOME_PLAYER_B_WINS\x10\x02\x12\x10\n" +
-	"\fOUTCOME_DRAW\x10\x03B:Z8github.com/reach-will/realtime-leaderboard/gen/events/v1b\x06proto3"
+	"\fOUTCOME_DRAW\x10\x03B?Z=github.com/reach-will/realtime-leaderboard/gen/gamesession/v1b\x06proto3"
 
 var (
-	file_events_v1_match_outcome_proto_rawDescOnce sync.Once
-	file_events_v1_match_outcome_proto_rawDescData []byte
+	file_gamesession_v1_events_proto_rawDescOnce sync.Once
+	file_gamesession_v1_events_proto_rawDescData []byte
 )
 
-func file_events_v1_match_outcome_proto_rawDescGZIP() []byte {
-	file_events_v1_match_outcome_proto_rawDescOnce.Do(func() {
-		file_events_v1_match_outcome_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_events_v1_match_outcome_proto_rawDesc), len(file_events_v1_match_outcome_proto_rawDesc)))
+func file_gamesession_v1_events_proto_rawDescGZIP() []byte {
+	file_gamesession_v1_events_proto_rawDescOnce.Do(func() {
+		file_gamesession_v1_events_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_gamesession_v1_events_proto_rawDesc), len(file_gamesession_v1_events_proto_rawDesc)))
 	})
-	return file_events_v1_match_outcome_proto_rawDescData
+	return file_gamesession_v1_events_proto_rawDescData
 }
 
-var file_events_v1_match_outcome_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_events_v1_match_outcome_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_events_v1_match_outcome_proto_goTypes = []any{
-	(Outcome)(0),         // 0: events.v1.Outcome
-	(*MatchOutcome)(nil), // 1: events.v1.MatchOutcome
+var file_gamesession_v1_events_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_gamesession_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_gamesession_v1_events_proto_goTypes = []any{
+	(Outcome)(0),         // 0: gamesession.v1.Outcome
+	(*MatchOutcome)(nil), // 1: gamesession.v1.MatchOutcome
 }
-var file_events_v1_match_outcome_proto_depIdxs = []int32{
-	0, // 0: events.v1.MatchOutcome.outcome:type_name -> events.v1.Outcome
+var file_gamesession_v1_events_proto_depIdxs = []int32{
+	0, // 0: gamesession.v1.MatchOutcome.outcome:type_name -> gamesession.v1.Outcome
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -193,27 +193,27 @@ var file_events_v1_match_outcome_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_events_v1_match_outcome_proto_init() }
-func file_events_v1_match_outcome_proto_init() {
-	if File_events_v1_match_outcome_proto != nil {
+func init() { file_gamesession_v1_events_proto_init() }
+func file_gamesession_v1_events_proto_init() {
+	if File_gamesession_v1_events_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_events_v1_match_outcome_proto_rawDesc), len(file_events_v1_match_outcome_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gamesession_v1_events_proto_rawDesc), len(file_gamesession_v1_events_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_events_v1_match_outcome_proto_goTypes,
-		DependencyIndexes: file_events_v1_match_outcome_proto_depIdxs,
-		EnumInfos:         file_events_v1_match_outcome_proto_enumTypes,
-		MessageInfos:      file_events_v1_match_outcome_proto_msgTypes,
+		GoTypes:           file_gamesession_v1_events_proto_goTypes,
+		DependencyIndexes: file_gamesession_v1_events_proto_depIdxs,
+		EnumInfos:         file_gamesession_v1_events_proto_enumTypes,
+		MessageInfos:      file_gamesession_v1_events_proto_msgTypes,
 	}.Build()
-	File_events_v1_match_outcome_proto = out.File
-	file_events_v1_match_outcome_proto_goTypes = nil
-	file_events_v1_match_outcome_proto_depIdxs = nil
+	File_gamesession_v1_events_proto = out.File
+	file_gamesession_v1_events_proto_goTypes = nil
+	file_gamesession_v1_events_proto_depIdxs = nil
 }

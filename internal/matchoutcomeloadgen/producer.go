@@ -1,4 +1,4 @@
-package loadgen
+package matchoutcomeloadgen
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
+	gamesessionpb "github.com/reach-will/realtime-leaderboard/gen/gamesession/v1"
 	kafka "github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
 )
@@ -57,18 +57,18 @@ func (p *Producer) randomMatch() (kafka.Message, error) {
 		idx2++
 	}
 
-	var outcome eventspb.Outcome
+	var outcome gamesessionpb.Outcome
 	switch rand.IntN(11) {
 	case 0:
-		outcome = eventspb.Outcome_OUTCOME_DRAW
+		outcome = gamesessionpb.Outcome_OUTCOME_DRAW
 	case 1, 2, 3, 4, 5:
-		outcome = eventspb.Outcome_OUTCOME_PLAYER_B_WINS
+		outcome = gamesessionpb.Outcome_OUTCOME_PLAYER_B_WINS
 	default:
-		outcome = eventspb.Outcome_OUTCOME_PLAYER_A_WINS
+		outcome = gamesessionpb.Outcome_OUTCOME_PLAYER_A_WINS
 	}
 
 	id := uuid.New()
-	payload, err := proto.Marshal(&eventspb.MatchOutcome{
+	payload, err := proto.Marshal(&gamesessionpb.MatchOutcome{
 		MatchId:     id.String(),
 		PlayerA:     p.players[idx1],
 		PlayerB:     p.players[idx2],
@@ -95,7 +95,7 @@ func (p *Producer) Run(ctx context.Context) {
 		interval = time.Millisecond
 	}
 
-	slog.Info("load generator started",
+	slog.Info("match outcome load generator started",
 		"target_rate_per_s", p.cfg.Rate,
 		"workers", p.cfg.Workers,
 		"interval_per_worker", interval,
@@ -149,7 +149,7 @@ func (p *Producer) Run(ctx context.Context) {
 	}
 
 	wg.Wait()
-	slog.Info("load generator stopped")
+	slog.Info("match outcome load generator stopped")
 }
 
 // Close flushes pending async writes and releases the Kafka writer.

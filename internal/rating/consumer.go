@@ -1,4 +1,4 @@
-package ingester
+package rating
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	eventspb "github.com/reach-will/realtime-leaderboard/gen/events/v1"
+	gamesessionpb "github.com/reach-will/realtime-leaderboard/gen/gamesession/v1"
 	"github.com/reach-will/realtime-leaderboard/internal/rediskeys"
 	"github.com/redis/go-redis/v9"
 	kafka "github.com/segmentio/kafka-go"
@@ -49,7 +49,7 @@ type matchUpdate struct {
 	deltaB  float64
 }
 
-// Consumer reads match outcomes from Kafka and updates scores in Redis.
+// Consumer reads match outcomes from Kafka, computes rating deltas, and updates scores in Redis.
 // Call Close when done.
 type Consumer struct {
 	reader *kafka.Reader
@@ -58,6 +58,7 @@ type Consumer struct {
 }
 
 // New creates a Consumer from cfg, establishing Kafka and Redis connections.
+// Call Close when done.
 func New(cfg Config) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{cfg.KafkaAddr},
@@ -117,7 +118,7 @@ func (c *Consumer) Close() {
 // And Uber's tiered retry topic architecture for a production-grade version of the same idea:
 // https://www.uber.com/ie/en/blog/reliable-reprocessing/
 func (c *Consumer) Run(ctx context.Context) {
-	slog.Info("ingester started")
+	slog.Info("rating service started")
 
 	if err := updateScoresScript.Load(ctx, c.rdb).Err(); err != nil {
 		slog.Error("failed to load Redis Lua script", "error", err)
@@ -150,7 +151,7 @@ func (c *Consumer) Run(ctx context.Context) {
 	for updates := range ch {
 		c.flushBatch(ctx, updates)
 	}
-	slog.Info("ingester shutting down")
+	slog.Info("rating service shutting down")
 }
 
 // collectBatch fetches up to batchSize messages within batchTimeout, parsing each
@@ -179,7 +180,7 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 
 		messagesReceivedTotal.Inc()
 
-		var outcome eventspb.MatchOutcome
+		var outcome gamesessionpb.MatchOutcome
 		err = proto.Unmarshal(msg.Value, &outcome)
 		if err != nil {
 			// Non-transient: malformed payload will never deserialize successfully (poison pill).
@@ -191,11 +192,11 @@ func (c *Consumer) collectBatch(ctx context.Context) (updates []matchUpdate) {
 
 		var deltaA, deltaB float64
 		switch outcome.Outcome {
-		case eventspb.Outcome_OUTCOME_PLAYER_A_WINS:
+		case gamesessionpb.Outcome_OUTCOME_PLAYER_A_WINS:
 			deltaA, deltaB = winDelta, lossDelta
-		case eventspb.Outcome_OUTCOME_PLAYER_B_WINS:
+		case gamesessionpb.Outcome_OUTCOME_PLAYER_B_WINS:
 			deltaA, deltaB = lossDelta, winDelta
-		case eventspb.Outcome_OUTCOME_DRAW:
+		case gamesessionpb.Outcome_OUTCOME_DRAW:
 			deltaA, deltaB = drawDelta, drawDelta
 		default:
 			// Non-transient: unknown outcome type is a producer-side bug, not a transient failure.

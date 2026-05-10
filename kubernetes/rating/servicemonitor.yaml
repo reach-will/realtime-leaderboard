@@ -1,7 +1,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: leaderboard-ingester-monitor
+  name: rating-monitor
   namespace: monitoring
   labels:
     release: kube-prometheus-stack
@@ -11,7 +11,7 @@ spec:
       - default
   selector:
     matchLabels:
-      app: leaderboard-ingester
+      app: rating
   endpoints:
     - port: admin
       path: /metrics
