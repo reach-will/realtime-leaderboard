@@ -9,7 +9,7 @@ GAMESESSION_ADMIN_ADDR := :2114
 
 # Kafka topics
 MATCHMAKING_MATCH_FOUND_KAFKA_TOPIC     := matchmaking.match.found
-GAMESESSION_MATCH_COMPLETED_KAFKA_TOPIC := c
+GAMESESSION_MATCH_COMPLETED_KAFKA_TOPIC := gamesession.match.completed
 
 # Consumer groups
 RATING_GROUP_ID      := rating.consumer
