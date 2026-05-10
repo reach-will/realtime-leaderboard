@@ -26,12 +26,12 @@ spec:
                 echo "Waiting for topic..."; sleep 3
               done
       containers:
-        - name: leaderboard-rating
+        - name: rating
           image: ghcr.io/reach-will/realtime-leaderboard/rating:latest
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
-                name: leaderboard-rating-config
+                name: rating-config
           ports:
             - name: admin
               containerPort: 2112
