@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package matchmaking.v1;
+
+option go_package = "github.com/reach-will/realtime-leaderboard/gen/matchmaking/v1";
+
+// MatchFound is emitted when two players have been paired and a game session should begin.
+message MatchFound {
+  string match_id    = 1;
+  string player_a    = 2;
+  string player_b    = 3;
+  int64  timestamp_ms = 4;
+}

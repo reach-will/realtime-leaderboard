@@ -7,7 +7,6 @@ import (
 	"github.com/reach-will/realtime-leaderboard/internal/config"
 )
 
-// Config holds all configuration for the leaderboard API binary.
 type Config struct {
 	GRPCAddr  string // e.g. :50051
 	SSEAddr   string // e.g. :8080
@@ -15,7 +14,6 @@ type Config struct {
 	RedisAddr string // e.g. redis:6379
 }
 
-// Load reads configuration from environment variables with fail-fast validation.
 func Load() (Config, error) {
 	c := Config{
 		GRPCAddr:  config.Get("GRPC_ADDR", ":50051"),

@@ -8,7 +8,6 @@ import (
 	"github.com/reach-will/realtime-leaderboard/internal/config"
 )
 
-// Config holds all configuration for the ingester binary.
 type Config struct {
 	KafkaAddr    string // e.g. localhost:9092
 	KafkaTopic   string
@@ -18,7 +17,6 @@ type Config struct {
 	AdminAddr    string // e.g. :2112
 }
 
-// Load reads configuration from environment variables with fail-fast validation.
 func Load() (Config, error) {
 	c := Config{
 		KafkaAddr:    os.Getenv("KAFKA_ADDR"),
