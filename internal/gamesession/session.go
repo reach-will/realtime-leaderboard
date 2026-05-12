@@ -24,12 +24,13 @@ type Session struct {
 // New creates a Session from cfg, establishing Kafka reader, writer, and DLT connections.
 func New(cfg Config) *Session {
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{cfg.KafkaAddr},
-		Topic:    cfg.InTopic,
-		GroupID:  cfg.GroupID,
-		Dialer:   &kafka.Dialer{KeepAlive: 30 * time.Second},
-		MinBytes: 1,
-		MaxBytes: 10e6,
+		Brokers:        []string{cfg.KafkaAddr},
+		Topic:          cfg.InTopic,
+		GroupID:        cfg.GroupID,
+		Dialer:         &kafka.Dialer{KeepAlive: 30 * time.Second},
+		MinBytes:       1,
+		MaxBytes:       10e6,
+		CommitInterval: time.Second,
 	})
 	writer := &kafka.Writer{
 		Addr:     kafka.TCP(cfg.KafkaAddr),
